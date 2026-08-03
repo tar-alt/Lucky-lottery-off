@@ -1,0 +1,7 @@
+{
+  "name":"cklottery-render-demo",
+  "version":"1.0.0",
+  "private":true,
+  "scripts":{"start":"node server.js"},
+  "dependencies":{"express":"^4.21.2","express-session":"^1.18.1","better-sqlite3":"^11.8.1"}
+}
