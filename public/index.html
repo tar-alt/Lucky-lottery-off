@@ -1,14 +1,296 @@
-<!doctype html><html lang="my"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CK Demo</title>
-<style>body{background:#0b1020;color:white;font-family:Arial;max-width:480px;margin:auto}.box{margin:16px;padding:18px;background:#151d31;border-radius:18px}input,button{width:100%;padding:13px;margin:5px 0;box-sizing:border-box;border-radius:10px}input{background:#0b1020;color:white;border:1px solid #334155}button{border:0;background:#f97316;color:white;font-weight:bold}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.grid button{margin:0}.hidden{display:none}.win{color:#4ade80}.lose{color:#f87171}</style>
-<div id="auth" class="box"><h2>👑 CK Demo</h2><input id="phone" placeholder="ဖုန်းနံပါတ်"><input id="pass" type="password" placeholder="စကားဝှက်"><button onclick="go('login')">Login</button><button onclick="go('register')">Register</button><small>Demo Unit သာအသုံးပြုသည်။ ငွေသွင်း/ငွေထုတ် မပါပါ။</small></div>
-<div id="app" class="hidden"><div class="box"><b>👑 CK DEMO</b><p>Player: <span id="me"></span></p><h2>Unit: <span id="units">0</span></h2><button onclick="logout()">Logout</button></div>
-<div class="box"><h3>Win Go Demo</h3><div class="grid"><button onclick="bet('အစိမ်း')">အစိမ်း</button><button onclick="bet('ခရမ်း')">ခရမ်း</button><button onclick="bet('အနီ')">အနီ</button><button onclick="bet('အသေး')">အသေး</button><button onclick="bet('အကြီး')">အကြီး</button><button onclick="bet('ဂဏန်း')">ဂဏန်း</button></div><input id="amt" type="number" value="100" min="1"><h3 id="result"></h3></div>
-<div class="box"><h3>မှတ်တမ်း</h3><div id="hist"></div></div></div>
-<script>
-const $=x=>document.getElementById(x);async function api(u,o={}){let r=await fetch(u,{headers:{'Content-Type':'application/json'},...o});return r.json()}
-function show(u){$('me').textContent=u.phone;$('units').textContent=u.units.toLocaleString();$('auth').classList.add('hidden');$('app').classList.remove('hidden')}
-async function go(mode){let d=await api('/api/'+mode,{method:'POST',body:JSON.stringify({phone:$('phone').value,password:$('pass').value})});if(d.success){show(d.user);history()}else alert(d.message)}
-async function bet(choice){let a=Number($('amt').value),d=await api('/api/bet',{method:'POST',body:JSON.stringify({choice,amount:a})});if(!d.success)return alert(d.message);show(d.user);$('result').className=d.result.win?'win':'lose';$('result').textContent=d.result.win?'🏆 အနိုင် +'+d.result.gain+' Unit':'မအောင်မြင်ပါ -'+a+' Unit';history()}
-async function history(){let d=await api('/api/history');$('hist').innerHTML=d.rows.map(x=>`<p>${x.period} | ${x.choice} | ${x.status} | ${x.amount}U</p>`).join('')}
-async function logout(){await api('/api/logout',{method:'POST'});location.reload()}api('/api/me').then(d=>d.success&&(show(d.user),history()));
-</script></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>👑 Lucky Lottery - Win Go 1Min</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #0b0f19; color: #f8fafc; margin: 0; padding: 12px; }
+    .card { background: #161e2e; padding: 16px; margin-bottom: 15px; border-radius: 12px; border: 1px solid #233044; }
+    input, button, select { padding: 12px; margin: 6px 0; border-radius: 8px; border: 1px solid #334155; background: #0b0f19; color: #fff; width: 100%; box-sizing: border-box; }
+    button { cursor: pointer; background: #2563eb; font-weight: bold; border: none; font-size: 15px; }
+    button:hover { background: #1d4ed8; }
+    .hidden { display: none !important; }
+    
+    .status-bar { display: flex; justify-content: space-between; align-items: center; background: #10172a; padding: 10px 15px; border-radius: 8px; margin-bottom: 12px; }
+    .online-badge { background: #064e3b; color: #34d399; padding: 4px 10px; border-radius: 20px; font-size: 12px; }
+
+    /* Number Grid Style */
+    .number-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 15px 0; }
+    .num-btn { background: #1e293b; color: #f8fafc; padding: 15px 0; font-size: 20px; font-weight: bold; border-radius: 10px; border: 2px solid #334155; cursor: pointer; text-align: center; }
+    .num-btn.selected { border-color: #38bdf8; background: #0284c7; }
+
+    /* Result Popup */
+    .popup { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+    .popup-content { background: #1e293b; padding: 30px; border-radius: 16px; text-align: center; border: 2px solid #38bdf8; width: 85%; max-width: 320px; box-shadow: 0 0 25px rgba(56, 189, 248, 0.3); }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+    th, td { border: 1px solid #233044; padding: 8px; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <div class="status-bar">
+    <h2 style="margin:0; color: #facc15;">👑 Lucky Lottery</h2>
+    <span class="online-badge">● Online: <span id="onlineUsers">1</span></span>
+  </div>
+
+  <!-- Auth Panel -->
+  <div id="authPanel" class="card">
+    <h3>Register / Login</h3>
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="register()">Register Account</button>
+    <button onclick="login()" style="background: #059669; margin-top: 6px;">Login</button>
+  </div>
+
+  <!-- User Dashboard -->
+  <div id="userPanel" class="card hidden">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h3 style="margin:0;"><span id="dispUser"></span></h3>
+        <small style="color: #38bdf8;" id="dispPlayerId"></small>
+      </div>
+      <div>
+        <span style="color: #4ade80; font-weight: bold; font-size: 20px;" id="dispBalance">0</span> Units
+      </div>
+    </div>
+    <div style="display: flex; gap: 10px; margin-top: 10px;">
+      <button onclick="logout()" style="background: #475569; padding: 8px;">Logout</button>
+      <a id="adminBtn" href="/admin.html" class="hidden" style="width:100%;"><button style="background: #d97706; padding: 8px;">Admin Panel ⚙️</button></a>
+    </div>
+
+    <hr style="border-color: #233044; margin: 15px 0;">
+
+    <h4>Deposit / Withdraw Request</h4>
+    <select id="txType">
+      <option value="deposit">Deposit Unit</option>
+      <option value="withdraw">Withdraw Unit</option>
+    </select>
+    <input type="number" id="txAmount" placeholder="Amount">
+    <button onclick="requestTx()" style="background: #d97706;">Submit Request</button>
+
+    <details style="margin-top: 12px;">
+      <summary style="cursor:pointer; color: #94a3b8;">Transaction History</summary>
+      <table id="historyTable">
+        <thead><tr><th>Type</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </details>
+  </div>
+
+  <!-- Game Arena -->
+  <div id="gamePanel" class="card hidden">
+    <div style="text-align: center;">
+      <h3 style="margin: 0;">Round: <span id="gameRound" style="color: #38bdf8;">-</span></h3>
+      <h1 style="color: #facc15; font-size: 48px; margin: 5px 0;" id="gameTimer">60</h1>
+      <small id="betState" style="color: #94a3b8;">Select a number (0-9)</small>
+    </div>
+
+    <!-- Number Grid -->
+    <div class="number-grid">
+      <div class="num-btn" onclick="selectNumber(0)">0</div>
+      <div class="num-btn" onclick="selectNumber(1)">1</div>
+      <div class="num-btn" onclick="selectNumber(2)">2</div>
+      <div class="num-btn" onclick="selectNumber(3)">3</div>
+      <div class="num-btn" onclick="selectNumber(4)">4</div>
+      <div class="num-btn" onclick="selectNumber(5)">5</div>
+      <div class="num-btn" onclick="selectNumber(6)">6</div>
+      <div class="num-btn" onclick="selectNumber(7)">7</div>
+      <div class="num-btn" onclick="selectNumber(8)">8</div>
+      <div class="num-btn" onclick="selectNumber(9)">9</div>
+    </div>
+
+    <input type="number" id="betAmount" placeholder="Bet Units">
+    <button onclick="submitBet()" style="background: #10b981;">Confirm Bet (9x Win)</button>
+    <p id="betStatus" style="text-align: center; color: #38bdf8; font-weight: bold;"></p>
+
+    <h4 style="margin-top: 20px;">📜 Recent Game Results</h4>
+    <table id="gameHistoryTable">
+      <thead><tr><th>Round</th><th>Result Number</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Win/Lose Result Modal -->
+  <div id="resultModal" class="popup hidden">
+    <div class="popup-content">
+      <h1 id="modalTitle" style="margin-top:0;"></h1>
+      <p id="modalBody" style="font-size: 16px; line-height: 1.5;"></p>
+      <button onclick="closeModal()" style="width: auto; padding: 10px 25px; margin-top: 10px;">Continue</button>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    let selectedNum = null;
+
+    socket.on('onlineUpdate', (count) => {
+      document.getElementById('onlineUsers').innerText = count;
+    });
+
+    socket.on('timerUpdate', (data) => {
+      document.getElementById('gameRound').innerText = data.round;
+      document.getElementById('gameTimer').innerText = data.timer;
+
+      if(data.timer <= 10) {
+        document.getElementById('betState').innerText = "❌ Betting Closed";
+        document.getElementById('betState').style.color = "#ef4444";
+      } else {
+        document.getElementById('betState').innerText = "✅ Betting Open";
+        document.getElementById('betState').style.color = "#22c55e";
+      }
+    });
+
+    function selectNumber(num) {
+      selectedNum = num;
+      document.querySelectorAll('.num-btn').forEach((btn, idx) => {
+        if(idx === num) btn.classList.add('selected');
+        else btn.classList.remove('selected');
+      });
+    }
+
+    function submitBet() {
+      if(selectedNum === null) return alert("Please select a number first!");
+      const amount = document.getElementById('betAmount').value;
+      if(!amount || amount <= 0) return alert("Enter valid bet amount!");
+      socket.emit('placeBet', { number: selectedNum, amount });
+    }
+
+    socket.on('betConfirmed', (data) => {
+      document.getElementById('betStatus').innerText = `Placed ${data.amount} units on Number [ ${data.number} ]`;
+    });
+
+    socket.on('errorMsg', (msg) => { alert(msg); });
+
+    socket.on('roundResult', (data) => {
+      const modal = document.getElementById('resultModal');
+      const title = document.getElementById('modalTitle');
+      const body = document.getElementById('modalBody');
+
+      if (data.win) {
+        title.innerText = '🏆 YOU WIN!';
+        title.style.color = '#4ade80';
+        body.innerText = `Winning Number: [ ${data.winningNumber} ]\nYour Choice: [ ${data.selectedNumber} ]\n\nWon: +${data.amount} Units!`;
+      } else {
+        title.innerText = '❌ YOU LOST';
+        title.style.color = '#ef4444';
+        body.innerText = `Winning Number: [ ${data.winningNumber} ]\nYour Choice: [ ${data.selectedNumber} ]\n\nLost: -${data.amount} Units`;
+      }
+      modal.classList.remove('hidden');
+      loadProfile();
+    });
+
+    socket.on('gameFinished', () => {
+      document.getElementById('betStatus').innerText = '';
+      selectNumber(null);
+      loadGameHistory();
+    });
+
+    function closeModal() {
+      document.getElementById('resultModal').classList.add('hidden');
+    }
+
+    async function register() {
+      const u = document.getElementById('username').value;
+      const p = document.getElementById('password').value;
+      if(!u || !p) return alert("Fill username and password!");
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: u, password: p })
+      });
+      const data = await res.json();
+      alert(data.message || data.error);
+    }
+
+    async function login() {
+      const u = document.getElementById('username').value;
+      const p = document.getElementById('password').value;
+      if(!u || !p) return alert("Fill username and password!");
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: u, password: p })
+      });
+      const data = await res.json();
+      if (data.success) loadProfile();
+      else alert(data.error);
+    }
+
+    async function loadProfile() {
+      try {
+        const res = await fetch('/api/me');
+        if (!res.ok) return;
+
+        const user = await res.json();
+        document.getElementById('authPanel').classList.add('hidden');
+        document.getElementById('userPanel').classList.remove('hidden');
+        document.getElementById('gamePanel').classList.remove('hidden');
+
+        document.getElementById('dispUser').innerText = user.username;
+        document.getElementById('dispPlayerId').innerText = user.player_id;
+        document.getElementById('dispBalance').innerText = user.balance;
+
+        if (user.role === 'admin') {
+          document.getElementById('adminBtn').classList.remove('hidden');
+        }
+
+        loadHistory();
+        loadGameHistory();
+      } catch(e) {}
+    }
+
+    async function logout() {
+      await fetch('/api/logout', { method: 'POST' });
+      location.reload();
+    }
+
+    async function requestTx() {
+      const type = document.getElementById('txType').value;
+      const amount = document.getElementById('txAmount').value;
+      const res = await fetch('/api/request-transaction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, amount })
+      });
+      const data = await res.json();
+      alert(data.message || data.error);
+      loadHistory();
+    }
+
+    async function loadHistory() {
+      const res = await fetch('/api/my-history');
+      const rows = await res.json();
+      const tbody = document.querySelector('#historyTable tbody');
+      if (Array.isArray(rows)) {
+        tbody.innerHTML = rows.map(r => `
+          <tr>
+            <td>${r.type}</td>
+            <td>${r.amount}</td>
+            <td>${r.status}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    async function loadGameHistory() {
+      const res = await fetch('/api/game-history');
+      const rows = await res.json();
+      const tbody = document.querySelector('#gameHistoryTable tbody');
+      if (Array.isArray(rows)) {
+        tbody.innerHTML = rows.map(r => `
+          <tr>
+            <td>#${r.round_id}</td>
+            <td style="color: #facc15; font-weight: bold;">[ ${r.result} ]</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    loadProfile();
+  </script>
+</body>
+</html>
+
