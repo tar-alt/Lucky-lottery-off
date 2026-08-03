@@ -1,0 +1,14 @@
+<!doctype html><html lang="my"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CK Demo</title>
+<style>body{background:#0b1020;color:white;font-family:Arial;max-width:480px;margin:auto}.box{margin:16px;padding:18px;background:#151d31;border-radius:18px}input,button{width:100%;padding:13px;margin:5px 0;box-sizing:border-box;border-radius:10px}input{background:#0b1020;color:white;border:1px solid #334155}button{border:0;background:#f97316;color:white;font-weight:bold}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.grid button{margin:0}.hidden{display:none}.win{color:#4ade80}.lose{color:#f87171}</style>
+<div id="auth" class="box"><h2>👑 CK Demo</h2><input id="phone" placeholder="ဖုန်းနံပါတ်"><input id="pass" type="password" placeholder="စကားဝှက်"><button onclick="go('login')">Login</button><button onclick="go('register')">Register</button><small>Demo Unit သာအသုံးပြုသည်။ ငွေသွင်း/ငွေထုတ် မပါပါ။</small></div>
+<div id="app" class="hidden"><div class="box"><b>👑 CK DEMO</b><p>Player: <span id="me"></span></p><h2>Unit: <span id="units">0</span></h2><button onclick="logout()">Logout</button></div>
+<div class="box"><h3>Win Go Demo</h3><div class="grid"><button onclick="bet('အစိမ်း')">အစိမ်း</button><button onclick="bet('ခရမ်း')">ခရမ်း</button><button onclick="bet('အနီ')">အနီ</button><button onclick="bet('အသေး')">အသေး</button><button onclick="bet('အကြီး')">အကြီး</button><button onclick="bet('ဂဏန်း')">ဂဏန်း</button></div><input id="amt" type="number" value="100" min="1"><h3 id="result"></h3></div>
+<div class="box"><h3>မှတ်တမ်း</h3><div id="hist"></div></div></div>
+<script>
+const $=x=>document.getElementById(x);async function api(u,o={}){let r=await fetch(u,{headers:{'Content-Type':'application/json'},...o});return r.json()}
+function show(u){$('me').textContent=u.phone;$('units').textContent=u.units.toLocaleString();$('auth').classList.add('hidden');$('app').classList.remove('hidden')}
+async function go(mode){let d=await api('/api/'+mode,{method:'POST',body:JSON.stringify({phone:$('phone').value,password:$('pass').value})});if(d.success){show(d.user);history()}else alert(d.message)}
+async function bet(choice){let a=Number($('amt').value),d=await api('/api/bet',{method:'POST',body:JSON.stringify({choice,amount:a})});if(!d.success)return alert(d.message);show(d.user);$('result').className=d.result.win?'win':'lose';$('result').textContent=d.result.win?'🏆 အနိုင် +'+d.result.gain+' Unit':'မအောင်မြင်ပါ -'+a+' Unit';history()}
+async function history(){let d=await api('/api/history');$('hist').innerHTML=d.rows.map(x=>`<p>${x.period} | ${x.choice} | ${x.status} | ${x.amount}U</p>`).join('')}
+async function logout(){await api('/api/logout',{method:'POST'});location.reload()}api('/api/me').then(d=>d.success&&(show(d.user),history()));
+</script></html>
