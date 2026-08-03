@@ -21,18 +21,17 @@ let gameHistory = [];
 let currentRound = {
   period: new Date().toISOString().slice(0,10).replace(/-/g, "") + "0001",
   timer: 60,
-  manualResult: null // Admin preset number (null = Auto Random)
+  manualResult: null
 };
 
 // Admin User Initial Setup
 users['admin'] = { password: 'adminpassword', balance: 999999, role: 'admin' };
 
-// --- Real-time Game Loop (60-second Timer) ---
+// Real-time Game Loop
 setInterval(() => {
   currentRound.timer--;
 
   if (currentRound.timer <= 0) {
-    // Determine Result
     let winningNumber;
     if (currentRound.manualResult !== null) {
       winningNumber = parseInt(currentRound.manualResult);
@@ -40,7 +39,6 @@ setInterval(() => {
       winningNumber = Math.floor(Math.random() * 10);
     }
 
-    // Determine Colors & Size
     let isBig = winningNumber >= 5;
     let color = 'green';
     if ([0, 5].includes(winningNumber)) color = 'purple';
@@ -50,20 +48,18 @@ setInterval(() => {
     const roundResult = {
       period: currentRound.period,
       number: winningNumber,
-      size: isBig ? 'အကြီး' : 'အသေး',
+      size: isBig ? 'BIG' : 'SMALL',
       color: color
     };
 
     gameHistory.unshift(roundResult);
     if (gameHistory.length > 20) gameHistory.pop();
 
-    // Settle Bets
     settleRoundBets(roundResult);
 
-    // Reset Round
     currentRound.period = (parseInt(currentRound.period) + 1).toString();
     currentRound.timer = 60;
-    currentRound.manualResult = null; // Reset to random after round ends
+    currentRound.manualResult = null;
 
     io.emit('round_ended', roundResult);
   }
@@ -96,20 +92,16 @@ function settleRoundBets(result) {
   });
 }
 
-// --- API Endpoints ---
-
-// Register / Login
+// API Endpoints
 app.post('/api/auth', (req, res) => {
   const { username, password } = req.body;
-  if (!username || !password) return res.status(400).json({ error: 'အချက်အလက်ပြည့်စုံစွာဖြည့်ပါ' });
+  if (!username || !password) return res.status(400).json({ error: 'Please enter all fields' });
 
   if (users[username]) {
-    // Login
     if (users[username].password !== password) {
-      return res.status(400).json({ error: 'စကားဝှက် မှားယွင်းနေပါသည်' });
+      return res.status(400).json({ error: 'Wrong password' });
     }
   } else {
-    // Register
     users[username] = { password, balance: 1000, role: 'user', bets: {} };
   }
 
@@ -117,14 +109,12 @@ app.post('/api/auth', (req, res) => {
   res.json({ token, user: { username, balance: users[username].balance, role: users[username].role } });
 });
 
-// Admin API: Control Next Round Number
 app.post('/api/admin/set-result', (req, res) => {
   const { number } = req.body;
-  currentRound.manualResult = number !== '' ? parseInt(number) : null;
+  currentRound.manualResult = (number !== '' && number !== null) ? parseInt(number) : null;
   res.json({ success: true, manualResult: currentRound.manualResult });
 });
 
-// Admin API: Direct Balance Transfer
 app.post('/api/admin/update-balance', (req, res) => {
   const { username, amount } = req.body;
   if (users[username]) {
@@ -132,10 +122,9 @@ app.post('/api/admin/update-balance', (req, res) => {
     io.emit('user_update', { username, balance: users[username].balance });
     return res.json({ success: true, balance: users[username].balance });
   }
-  res.status(404).json({ error: 'User ရှာမတွေ့ပါ' });
+  res.status(404).json({ error: 'User not found' });
 });
 
-// Admin API: Fetch Users & Bets
 app.get('/api/admin/dashboard', (req, res) => {
   const userList = Object.keys(users).map(u => ({
     username: u,
@@ -146,7 +135,7 @@ app.get('/api/admin/dashboard', (req, res) => {
   res.json({ users: userList, currentRound, pendingTransactions });
 });
 
-// WebSocket Real-time Authentication
+// WebSocket Setup
 io.on('connection', (socket) => {
   socket.on('join', (username) => {
     socket.join(username);
@@ -162,10 +151,11 @@ io.on('connection', (socket) => {
       socket.emit('balance_updated', user.balance);
       io.emit('admin_bet_update', { username, type, value, amount, period: currentRound.period });
     } else {
-      socket.emit('error_msg', 'လက်ကျန်ငွေ မလုံလောက်ပါ');
+      socket.emit('error_msg', 'Insufficient balance');
     }
   });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
