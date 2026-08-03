@@ -25,8 +25,9 @@
     /* Auth / Login Gate Overlay */
     #authOverlay { position: fixed; inset: 0; background: #0f172a; z-index: 2000; display: flex; justify-content: center; align-items: center; padding: 20px; }
     .auth-card { background: #1e293b; width: 100%; max-width: 400px; padding: 25px; border-radius: 20px; border: 1px solid var(--card-border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; }
-    .auth-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 14px; outline: none; }
+    .auth-input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 14px; outline: none; }
     .auth-btn { width: 100%; padding: 12px; background: var(--green-3d); border: none; border-radius: 10px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 0 #047857; }
+    .auth-toggle { margin-top: 15px; font-size: 13px; color: #60a5fa; cursor: pointer; text-decoration: underline; }
 
     /* Top Bar Header */
     .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--card-border); margin-bottom: 12px; }
@@ -84,7 +85,7 @@
     td { padding: 10px 4px; border-bottom: 1px solid rgba(255,255,255,0.03); color: #cbd5e1; }
     .res-ball { display: inline-block; width: 22px; height: 22px; line-height: 22px; border-radius: 50%; color: white; font-weight: bold; font-size: 11px; }
 
-    /* Modals System (Deposit, Withdraw, Bet Drawer) */
+    /* Modals System */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: flex-end; z-index: 1000; backdrop-filter: blur(5px); }
     .modal-content { background: #1e293b; border-top-left-radius: 24px; border-top-right-radius: 24px; width: 100%; max-width: 480px; padding: 20px; border-top: 1px solid var(--card-border); color: white; max-height: 85vh; overflow-y: auto; }
     
@@ -108,13 +109,16 @@
 </head>
 <body>
 
-<!-- Login Gate Modal -->
+<!-- Login / Register Overlay -->
 <div id="authOverlay">
   <div class="auth-card">
-    <h2 style="color:#f1c40f; margin-bottom: 15px;">Lucky Lottery Login</h2>
+    <h2 id="authTitle" style="color:#f1c40f; margin-bottom: 15px;">Lucky Lottery Login</h2>
     <input type="text" id="loginUsername" class="auth-input" placeholder="ဖုန်းနံပါတ် သို့ အကောင့်အမည်">
-    <input type="password" class="auth-input" placeholder="စကားဝှက်">
-    <button class="auth-btn" onclick="handleLogin()">လော့ဂ်အင်ဝင်မည်</button>
+    <input type="password" id="loginPassword" class="auth-input" placeholder="စကားဝှက်">
+    <button class="auth-btn" id="authSubmitBtn" onclick="handleAuth()">လော့ဂ်အင်ဝင်မည်</button>
+    <div class="auth-toggle" id="authToggleBtn" onclick="toggleAuthMode()">
+      အကောင့်မရှိသေးပါက ဒီမှာ အကောင့်သစ်ဖွင့်ပါ (Register)
+    </div>
   </div>
 </div>
 
@@ -148,7 +152,7 @@
   <div class="ticket-card">
     <div>
       <div style="font-size: 14px; font-weight: bold;">Win Go 30s</div>
-      <small id="periodDisplay" style="color:#94a3b8;">P: 20260804001</small>
+      <small id="periodDisplay" style="color:#94a3b8;">P: Loading...</small>
     </div>
     <div>
       <div style="font-size: 10px; text-align: right; color:#94a3b8; margin-bottom: 2px;">Time remaining</div>
@@ -296,31 +300,63 @@
 
 <script>
   const socket = io();
+  let isRegisterMode = false;
   let currentUser = null;
   let activeBet = { type: '', value: '', baseAmt: 1000, qty: 1 };
   let gameHistory = [];
   let myBets = [];
   let txLogs = [];
 
-  function handleLogin() {
-    const val = document.getElementById('loginUsername').value.trim();
-    if(!val) return alert('ကျေးဇူးပြု၍ ဖုန်းနံပါတ် သို့ အကောင့်အမည် ရိုက်ထည့်ပါ');
-    
-    currentUser = { username: val, balance: 0.00 };
-    document.getElementById('userDisplay').innerText = val;
-    document.getElementById('authOverlay').style.display = 'none';
-    
-    socket.emit('get_init_data', { username: currentUser.username });
+  // LocalStorage စစ်ဆေးပြီး Password Auto ဖြည့်ပေးမည်
+  window.onload = () => {
+    const savedPhone = localStorage.getItem('ll_saved_phone');
+    const savedPass = localStorage.getItem('ll_saved_pass');
+    if (savedPhone && savedPass) {
+      document.getElementById('loginUsername').value = savedPhone;
+      document.getElementById('loginPassword').value = savedPass;
+    }
+  };
+
+  function toggleAuthMode() {
+    isRegisterMode = !isRegisterMode;
+    document.getElementById('authTitle').innerText = isRegisterMode ? 'Lucky Lottery Register' : 'Lucky Lottery Login';
+    document.getElementById('authSubmitBtn').innerText = isRegisterMode ? 'အကောင့်သစ်ဖွင့်မည်' : 'လော့ဂ်အင်ဝင်မည်';
+    document.getElementById('authToggleBtn').innerText = isRegisterMode ? 'အကောင့်ရှိပြီးသားပါက Login ဝင်ပါ' : 'အကောင့်မရှိသေးပါက ဒီမှာ အကောင့်သစ်ဖွင့်ပါ (Register)';
   }
+
+  function handleAuth() {
+    const phone = document.getElementById('loginUsername').value.trim();
+    const pass = document.getElementById('loginPassword').value.trim();
+
+    if (!phone || !pass) return alert('ကျေးဇူးပြု၍ ဖုန်းနံပါတ် သို့ အကောင့်အမည် နှင့် စကားဝှက် ရိုက်ထည့်ပါ');
+
+    if (isRegisterMode) {
+      socket.emit('user_register', { phone, pass });
+    } else {
+      socket.emit('user_login', { phone, pass });
+    }
+  }
+
+  socket.on('auth_response', (res) => {
+    if (res.success) {
+      // LocalStorage သို့ အော်တိုမှတ်ထားပေးမည်
+      localStorage.setItem('ll_saved_phone', res.user.phone);
+      localStorage.setItem('ll_saved_pass', res.user.pass);
+
+      currentUser = res.user;
+      document.getElementById('userDisplay').innerText = currentUser.phone;
+      document.getElementById('authOverlay').style.display = 'none';
+      updateBalanceUI();
+      alert(res.message);
+    } else {
+      alert(res.message);
+    }
+  });
 
   socket.on('init_data', (data) => {
     gameHistory = data.history || [];
     renderGameHistory();
     document.getElementById('periodDisplay').innerText = `P: ${data.period}`;
-    if(data.balance !== undefined) {
-      currentUser.balance = data.balance;
-      updateBalanceUI();
-    }
   });
 
   socket.on('timer_update', (data) => {
@@ -329,13 +365,17 @@
     document.getElementById('periodDisplay').innerText = `P: ${data.period}`;
   });
 
-  socket.on('round_ended', (data) => {
-    gameHistory = data.history;
-    renderGameHistory();
+  socket.on('balance_sync', (newBalance) => {
+    if (currentUser) {
+      currentUser.balance = newBalance;
+      updateBalanceUI();
+    }
   });
 
   function updateBalanceUI() {
-    document.getElementById('balanceDisplay').innerText = `K${currentUser.balance.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+    if (currentUser) {
+      document.getElementById('balanceDisplay').innerText = `K${currentUser.balance.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+    }
   }
 
   /* History Tabs */
@@ -429,19 +469,16 @@
       return;
     }
 
-    currentUser.balance -= total;
-    updateBalanceUI();
-
     const currentPeriod = document.getElementById('periodDisplay').innerText.replace('P: ', '');
     myBets.unshift({
       period: currentPeriod,
       value: activeBet.value,
       amount: total,
-      win: Math.random() < 0.5 // Mock result for frontend preview
+      win: Math.random() < 0.5
     });
 
     socket.emit('place_bet', {
-      username: currentUser.username,
+      phone: currentUser.phone,
       bet: activeBet,
       totalAmount: total
     });
