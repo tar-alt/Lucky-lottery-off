@@ -1,0 +1,6 @@
+<!doctype html><html lang="my"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CK Admin</title><style>body{background:#0b1020;color:white;font-family:Arial;max-width:600px;margin:auto}.box{margin:16px;padding:18px;background:#151d31;border-radius:18px}.u{padding:12px 0;border-bottom:1px solid #334155}input,button{padding:10px;margin:3px;border-radius:8px}button{background:#f97316;color:white;border:0;font-weight:bold}</style>
+<div class=box><h2>👑 Admin Unit Control</h2><p>User က Unit ကိုယ်တိုင်မထည့်နိုင်ပါ။ Admin ကသာ ထည့်ပေးနိုင်ပါတယ်။</p><div id=users></div></div>
+<script>
+async function load(){let d=await (await fetch('/api/admin/users')).json();if(!d.success)return location='/';users.innerHTML=d.users.filter(x=>x.role==='user').map(x=>`<div class=u><b>${x.phone}</b><br>Unit: ${x.units}<br><input id=a${x.id} type=number value=100><button onclick="act(${x.id},'grant')">+ Grant</button><button onclick="act(${x.id},'set')">Set</button></div>`).join('')}
+async function act(id,type){let a=Number(document.getElementById('a'+id).value),d=await (await fetch('/api/admin/'+type,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:id,amount:a})})).json();alert(d.success?'ပြီးပါပြီ':d.message);load()}load();
+</script></html>
