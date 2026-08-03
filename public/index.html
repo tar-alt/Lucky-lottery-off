@@ -16,169 +16,43 @@
       --blue-btn: #3b82f6;
     }
 
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: var(--bg-color);
-      color: #fff;
-      display: flex;
-      justify-content: center;
-    }
-
-    .app-container {
-      width: 100%;
-      max-width: 480px;
-      min-height: 100vh;
-      background-color: #0f172a;
-      padding: 15px;
-      box-sizing: border-box;
-    }
+    body { margin: 0; font-family: Arial, sans-serif; background-color: var(--bg-color); color: #fff; display: flex; justify-content: center; }
+    .app-container { width: 100%; max-width: 480px; min-height: 100vh; background-color: #0f172a; padding: 15px; box-sizing: border-box; }
 
     /* Auth Overlay */
-    .auth-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(11, 17, 32, 0.95);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-    .auth-card {
-      background: var(--card-bg);
-      padding: 25px;
-      border-radius: 12px;
-      width: 85%;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-    }
-    .auth-card input {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      border-radius: 6px;
-      border: 1px solid #334155;
-      background: #0f172a;
-      color: #fff;
-      box-sizing: border-box;
-    }
-    .auth-card button {
-      width: 100%;
-      padding: 12px;
-      background: var(--accent-gold);
-      border: none;
-      font-weight: bold;
-      border-radius: 6px;
-      cursor: pointer;
-      margin-top: 10px;
-    }
+    .auth-overlay { position: fixed; inset: 0; background: rgba(11, 17, 32, 0.95); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+    .auth-card { background: var(--card-bg); padding: 25px; border-radius: 12px; width: 85%; }
+    .auth-card input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #fff; box-sizing: border-box; }
+    .auth-card button { width: 100%; padding: 12px; background: var(--accent-gold); border: none; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 10px; }
 
-    /* Dashboard Header */
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 0;
-    }
-    .balance-box {
-      background: #1e293b;
-      padding: 8px 16px;
-      border-radius: 20px;
-      color: var(--accent-gold);
-      font-weight: bold;
-    }
+    .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
+    .balance-box { background: #1e293b; padding: 8px 16px; border-radius: 20px; color: var(--accent-gold); font-weight: bold; }
 
-    /* Timer Section */
-    .timer-card {
-      background: linear-gradient(135deg, #4f46e5, #7c3aed);
-      border-radius: 12px;
-      padding: 15px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-    }
-    .timer-clock {
-      background: #0f172a;
-      padding: 8px 15px;
-      border-radius: 8px;
-      font-size: 24px;
-      font-weight: bold;
-      color: #38bdf8;
-    }
+    .timer-card { background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 12px; padding: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .timer-clock { background: #0f172a; padding: 8px 15px; border-radius: 8px; font-size: 24px; font-weight: bold; color: #38bdf8; }
 
-    /* Betting Options Grid */
-    .color-btns {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 15px;
-    }
-    .btn {
-      padding: 15px;
-      border: none;
-      border-radius: 8px;
-      color: #fff;
-      font-weight: bold;
-      cursor: pointer;
-      font-size: 16px;
-    }
+    .color-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+    .btn { padding: 15px; border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; font-size: 16px; }
     .bg-green { background-color: var(--green-btn); }
     .bg-purple { background-color: var(--purple-btn); }
     .bg-red { background-color: var(--red-btn); }
     .bg-big { background-color: #d97706; }
     .bg-small { background-color: #2563eb; }
 
-    .number-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 10px;
-      margin-bottom: 15px;
-    }
-    .num-btn {
-      aspect-ratio: 1;
-      border-radius: 8px;
-      border: none;
-      color: white;
-      font-size: 18px;
-      font-weight: bold;
-      cursor: pointer;
-    }
+    .number-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 15px; }
+    .num-btn { aspect-ratio: 1; border-radius: 8px; border: none; color: white; font-size: 18px; font-weight: bold; cursor: pointer; }
+    .size-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
 
-    .size-btns {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
+    /* History Table */
+    .history-card { background: var(--card-bg); border-radius: 10px; padding: 12px; margin-top: 15px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; }
+    th, td { padding: 8px; border-bottom: 1px solid #334155; }
+    th { color: #94a3b8; }
+    .ball { display: inline-block; width: 22px; height: 22px; line-height: 22px; border-radius: 50%; font-weight: bold; color: #fff; }
 
-    /* Result Modal */
-    .popup-modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.8);
-      justify-content: center;
-      align-items: center;
-      z-index: 2000;
-    }
-    .popup-content {
-      background: var(--card-bg);
-      padding: 30px;
-      border-radius: 15px;
-      text-align: center;
-      max-width: 300px;
-      width: 100%;
-    }
-
-    /* Admin Panel Styling */
-    .admin-panel {
-      display: none;
-      background: var(--card-bg);
-      border: 1px solid var(--accent-gold);
-      padding: 15px;
-      border-radius: 12px;
-      margin-top: 20px;
-    }
+    /* Modal */
+    .popup-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 2000; }
+    .popup-content { background: var(--card-bg); padding: 25px; border-radius: 15px; text-align: center; width: 260px; }
   </style>
 </head>
 <body>
@@ -186,20 +60,18 @@
 <div class="auth-overlay" id="authModal">
   <div class="auth-card">
     <h2 style="text-align: center; color: var(--accent-gold);">CK VIP LOTTERY</h2>
-    <input type="text" id="username" placeholder="Username / ဖုန်းနံပါတ်">
+    <input type="text" id="username" placeholder="Username">
     <input type="password" id="password" placeholder="Password">
-    <button onclick="login()">ဝင်ရောက်မည် / စာရင်းသွင်းမည်</button>
+    <button onclick="login()">ဝင်ရောက်မည်</button>
   </div>
 </div>
 
 <div class="app-container">
-  <!-- Header -->
   <div class="header">
     <h3 style="color: var(--accent-gold); margin:0;">👑 CKLOTTERY</h3>
     <div class="balance-box" id="balanceDisplay">K0.00</div>
   </div>
 
-  <!-- Timer Card -->
   <div class="timer-card">
     <div>
       <div>Win Go 1Min</div>
@@ -208,7 +80,7 @@
     <div class="timer-clock" id="timerDisplay">00:00</div>
   </div>
 
-  <!-- Main Betting Dashboard -->
+  <!-- Betting Buttons -->
   <div class="color-btns">
     <button class="btn bg-green" onclick="placeBet('color', 'green', 1000)">အစိမ်း</button>
     <button class="btn bg-purple" onclick="placeBet('color', 'purple', 1000)">ခရမ်း</button>
@@ -233,48 +105,37 @@
     <button class="btn bg-small" onclick="placeBet('size', 'small', 1000)">အသေး (0-4)</button>
   </div>
 
-  <!-- ADMIN PANEL (Visible to Admin Only) -->
-  <div class="admin-panel" id="adminPanel">
-    <h3 style="color: var(--accent-gold); margin-top: 0;">⚙️ Admin Control Panel</h3>
-    
-    <h4>1. Control Next Outcome</h4>
-    <select id="adminNextNumber" style="width: 100%; padding: 8px; margin-bottom: 8px;">
-      <option value="">Auto Random (Normal Game)</option>
-      <option value="0">0 (Purple/Red)</option>
-      <option value="1">1 (Green)</option>
-      <option value="2">2 (Red)</option>
-      <option value="3">3 (Green)</option>
-      <option value="4">4 (Red)</option>
-      <option value="5">5 (Purple/Green)</option>
-      <option value="6">6 (Red)</option>
-      <option value="7">7 (Green)</option>
-      <option value="8">8 (Red)</option>
-      <option value="9">9 (Green)</option>
-    </select>
-    <button class="btn bg-big" style="width: 100%; padding: 8px;" onclick="setAdminResult()">Update Result</button>
-
-    <h4>2. Balance Management</h4>
-    <input type="text" id="targetUser" placeholder="User ID / Name" style="width: 90%; padding: 8px; margin-bottom: 5px;">
-    <input type="number" id="transferAmt" placeholder="Amount (+/-)" style="width: 90%; padding: 8px; margin-bottom: 5px;">
-    <button class="btn bg-small" style="width: 100%; padding: 8px;" onclick="updateUserBalance()">Update Balance</button>
+  <!-- Game History Record Table -->
+  <div class="history-card">
+    <h4 style="margin-top:0; color:#38bdf8;">📜 ထွက်ခဲ့သည့် မှတ်တမ်းများ (History)</h4>
+    <table>
+      <thead>
+        <tr>
+          <th>Period</th>
+          <th>Number</th>
+          <th>Size</th>
+        </tr>
+      </thead>
+      <tbody id="historyTable">
+        <tr><td colspan="3">Waiting for rounds...</td></tr>
+      </tbody>
+    </table>
   </div>
 </div>
 
-<!-- Win/Loss Pop-up Result -->
 <div class="popup-modal" id="resultModal">
   <div class="popup-content">
-    <h1 id="popupStatus" style="margin: 0;">🎉</h1>
-    <h2 id="popupTitle">နိုင်ပါသည်!</h2>
-    <p id="popupDetails">ထွက်ဂဏန်း: 5 (အကြီး)</p>
-    <button class="btn bg-big" onclick="closePopup()">ပိတ်မည်</button>
+    <h2 id="popupTitle"></h2>
+    <p id="popupDetails"></p>
+    <button class="btn bg-big" onclick="closePopup()">OK</button>
   </div>
 </div>
 
 <script>
   const socket = io();
   let currentUser = null;
+  let historyList = [];
 
-  // Persistent Auto-Login Logic
   window.onload = () => {
     const savedUser = localStorage.getItem('lottery_user');
     if (savedUser) {
@@ -300,26 +161,39 @@
       localStorage.setItem('lottery_user', JSON.stringify(currentUser));
       document.getElementById('authModal').style.display = 'none';
       initUserSession();
-    } else {
-      alert(data.error);
-    }
+    } else { alert(data.error); }
   }
 
   function initUserSession() {
     document.getElementById('balanceDisplay').innerText = `K${currentUser.balance.toLocaleString()}`;
     socket.emit('join', currentUser.username);
-
-    if (currentUser.role === 'admin') {
-      document.getElementById('adminPanel').style.display = 'block';
-    }
   }
 
-  // Socket Listeners
   socket.on('timer_update', (data) => {
     let secs = data.timer < 10 ? '0' + data.timer : data.timer;
     document.getElementById('timerDisplay').innerText = `00:${secs}`;
     document.getElementById('periodDisplay').innerText = `P: ${data.period}`;
   });
+
+  socket.on('round_ended', (result) => {
+    historyList.unshift(result);
+    if(historyList.length > 10) historyList.pop();
+    renderHistory();
+  });
+
+  function renderHistory() {
+    const tbody = document.getElementById('historyTable');
+    tbody.innerHTML = historyList.map(h => {
+      let bg = h.color === 'green' ? '#10b981' : (h.color === 'red' ? '#ef4444' : '#8b5cf6');
+      return `
+        <tr>
+          <td>${h.period}</td>
+          <td><span class="ball" style="background:${bg}">${h.number}</span></td>
+          <td>${h.size}</td>
+        </tr>
+      `;
+    }).join('');
+  }
 
   socket.on('balance_updated', (newBalance) => {
     currentUser.balance = newBalance;
@@ -332,13 +206,13 @@
     const details = document.getElementById('popupDetails');
 
     if (data.won) {
-      title.innerText = "ဂုဏ်ယူပါသည်! နိုင်ပါသည်";
+      title.innerText = "🎉 နိုင်ပါသည်!";
       title.style.color = "#10b981";
-      details.innerText = `ထွက်ဂဏန်း: ${data.result.number} (${data.result.size}) | ရရှိငွေ: K${data.payout}`;
+      details.innerText = `ထွက်ဂဏန်း: ${data.result.number} | ရရှိငွေ: K${data.payout}`;
     } else {
-      title.innerText = "စိတ်မကောင်းပါ! ရှုံးပါသည်";
+      title.innerText = "😢 ရှုံးပါသည်";
       title.style.color = "#ef4444";
-      details.innerText = `ထွက်ဂဏန်း: ${data.result.number} (${data.result.size})`;
+      details.innerText = `ထွက်ဂဏန်း: ${data.result.number}`;
     }
     modal.style.display = 'flex';
   });
@@ -348,34 +222,10 @@
     socket.emit('place_bet', { username: currentUser.username, type, value, amount });
   }
 
-  // Admin Operations
-  async function setAdminResult() {
-    const number = document.getElementById('adminNextNumber').value;
-    await fetch('/api/admin/set-result', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ number })
-    });
-    alert('အထွက်ဂဏန်း အောင်မြင်စွာ ပြောင်းလဲပြီးပါပြီ');
-  }
-
-  async function updateUserBalance() {
-    const username = document.getElementById('targetUser').value;
-    const amount = document.getElementById('transferAmt').value;
-
-    const res = await fetch('/api/admin/update-balance', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, amount })
-    });
-    if (res.ok) alert('လက်ကျန်ငွေ ပြင်ဆင်ပြီးပါပြီ');
-  }
-
   function closePopup() {
     document.getElementById('resultModal').style.display = 'none';
   }
 </script>
-
 </body>
 </html>
 
