@@ -13,9 +13,9 @@ const JWT_SECRET = 'super_secret_jwt_key_12345';
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// In-Memory Database (ထုတ်လုပ်ရေးအတွက် MongoDB/PostgreSQL သို့ ပြောင်းနိုင်ပါသည်)
-let users = {}; // { username: { password, balance, role, bets } }
-let pendingTransactions = []; // [{ id, username, type: 'deposit'|'withdraw', amount, status }]
+// In-Memory Database
+let users = {}; 
+let pendingTransactions = []; 
 let gameHistory = [];
 
 let currentRound = {
@@ -119,7 +119,7 @@ app.post('/api/auth', (req, res) => {
 
 // Admin API: Control Next Round Number
 app.post('/api/admin/set-result', (req, res) => {
-  const { number } = req.body; // null for auto, 0-9 for manual
+  const { number } = req.body;
   currentRound.manualResult = number !== '' ? parseInt(number) : null;
   res.json({ success: true, manualResult: currentRound.manualResult });
 });
@@ -169,4 +169,3 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
