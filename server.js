@@ -1,3 +1,41 @@
+// server.js ၏ အပေါ်ဆုံး သို့မဟုတ် global variable များထဲတွင် ထည့်ပါ
+let manualTargetResult = "AUTO"; // ကနဦးတွင် AUTO ထားမည်
+
+io.on('connection', (socket) => {
+
+  // Admin မှ ကျမည့်နံပါတ် သတ်မှတ်ချက် လက်ခံခြင်း
+  socket.on('admin_set_target_result', (data) => {
+    manualTargetResult = data.target;
+    console.log(`[ADMIN CONTROL] Next target result set to: ${manualTargetResult}`);
+  });
+
+  // Admin မှ Balance တိုး/လျှော့ ပို့လာခြင်း
+  socket.on('admin_update_balance', (data) => {
+    // Database / Array ထဲတွင် Balance ပြင်ဆင်သည့် logic ရေးရန်
+  });
+});
+
+// Timer 0 ဖြစ်၍ ဂဏန်း ထွက်မည့် Function ထဲတွင် အောက်ပါအတိုင်း သုံးပါ:
+function calculateGameResult() {
+  let finalNumber;
+
+  if (manualTargetResult !== "AUTO") {
+    // Admin က နံပါတ် ရွေးထားခဲ့ပါက ထိုနံပါတ်အတိုင်း ထုတ်ပေးမည်
+    finalNumber = parseInt(manualTargetResult);
+    
+    // အသုံးပြုပြီးပါက AUTO ပြန်ပြောင်းချင်ပါက (သို့) ဆက်ထားချင်ပါက လိုသလို ညှိနိုင်သည်
+    // manualTargetResult = "AUTO"; 
+  } else {
+    // ရိုးရိုး Random ဂဏန်း (0 မှ 9) ထုတ်ပေးမည်
+    finalNumber = Math.floor(Math.random() * 10);
+  }
+
+  // Color / Size ခွဲခြားမှုများ
+  let color = (finalNumber === 0 || finalNumber === 5) ? 'violet' : (finalNumber % 2 === 0 ? 'red' : 'green');
+  let size = finalNumber >= 5 ? 'BIG' : 'SMALL';
+
+  return { number: finalNumber, color: color, size: size };
+}
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
