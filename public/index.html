@@ -13,7 +13,6 @@
       --green-btn: #10b981;
       --purple-btn: #8b5cf6;
       --red-btn: #ef4444;
-      --blue-btn: #3b82f6;
     }
 
     body { margin: 0; font-family: Arial, sans-serif; background-color: var(--bg-color); color: #fff; display: flex; justify-content: center; }
@@ -33,6 +32,7 @@
 
     .color-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
     .btn { padding: 15px; border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; font-size: 16px; }
+    .btn:active { transform: scale(0.96); }
     .bg-green { background-color: var(--green-btn); }
     .bg-purple { background-color: var(--purple-btn); }
     .bg-red { background-color: var(--red-btn); }
@@ -41,6 +41,7 @@
 
     .number-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 15px; }
     .num-btn { aspect-ratio: 1; border-radius: 8px; border: none; color: white; font-size: 18px; font-weight: bold; cursor: pointer; }
+    .num-btn:active { transform: scale(0.94); }
     .size-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
 
     /* History Table */
@@ -105,7 +106,7 @@
     <button class="btn bg-small" onclick="placeBet('size', 'small', 1000)">အသေး (0-4)</button>
   </div>
 
-  <!-- Game History Record Table -->
+  <!-- History Record Table -->
   <div class="history-card">
     <h4 style="margin-top:0; color:#38bdf8;">📜 ထွက်ခဲ့သည့် မှတ်တမ်းများ (History)</h4>
     <table>
@@ -117,7 +118,7 @@
         </tr>
       </thead>
       <tbody id="historyTable">
-        <tr><td colspan="3">Waiting for rounds...</td></tr>
+        <tr><td colspan="3">Loading records...</td></tr>
       </tbody>
     </table>
   </div>
@@ -136,6 +137,17 @@
   let currentUser = null;
   let historyList = [];
 
+  // Socket Connected -> Fetch Live Data
+  socket.on('connect', () => {
+    socket.emit('get_init_data');
+  });
+
+  socket.on('init_data', (data) => {
+    historyList = data.history || [];
+    renderHistory();
+    document.getElementById('periodDisplay').innerText = `P: ${data.period}`;
+  });
+
   window.onload = () => {
     const savedUser = localStorage.getItem('lottery_user');
     if (savedUser) {
@@ -146,8 +158,10 @@
   };
 
   async function login() {
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+
+    if(!username || !password) return alert('Username/Password ဖြည့်ပါ');
 
     const res = await fetch('/api/auth', {
       method: 'POST',
@@ -175,14 +189,17 @@
     document.getElementById('periodDisplay').innerText = `P: ${data.period}`;
   });
 
-  socket.on('round_ended', (result) => {
-    historyList.unshift(result);
-    if(historyList.length > 10) historyList.pop();
+  socket.on('round_ended', (data) => {
+    historyList = data.history;
     renderHistory();
   });
 
   function renderHistory() {
     const tbody = document.getElementById('historyTable');
+    if(!historyList || historyList.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="3">မှတ်တမ်း မရှိသေးပါ</td></tr>';
+      return;
+    }
     tbody.innerHTML = historyList.map(h => {
       let bg = h.color === 'green' ? '#10b981' : (h.color === 'red' ? '#ef4444' : '#8b5cf6');
       return `
@@ -197,13 +214,21 @@
 
   socket.on('balance_updated', (newBalance) => {
     currentUser.balance = newBalance;
+    localStorage.setItem('lottery_user', JSON.stringify(currentUser));
     document.getElementById('balanceDisplay').innerText = `K${newBalance.toLocaleString()}`;
+    alert("လောင်းကြေး တင်ပြီးပါပြီ!");
   });
+
+  socket.on('error_msg', (msg) => { alert(msg); });
 
   socket.on('bet_result', (data) => {
     const modal = document.getElementById('resultModal');
     const title = document.getElementById('popupTitle');
     const details = document.getElementById('popupDetails');
+
+    currentUser.balance = data.newBalance;
+    localStorage.setItem('lottery_user', JSON.stringify(currentUser));
+    document.getElementById('balanceDisplay').innerText = `K${data.newBalance.toLocaleString()}`;
 
     if (data.won) {
       title.innerText = "🎉 နိုင်ပါသည်!";
@@ -218,7 +243,11 @@
   });
 
   function placeBet(type, value, amount) {
-    if (!currentUser) return;
+    if (!currentUser) {
+      alert("ကျေးဇူးပြု၍ Login အရင်ဝင်ပါ");
+      document.getElementById('authModal').style.display = 'flex';
+      return;
+    }
     socket.emit('place_bet', { username: currentUser.username, type, value, amount });
   }
 
