@@ -3,134 +3,106 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>⚙️ Admin Full Live Dashboard</title>
+  <title>Admin Dashboard Control</title>
   <script src="/socket.io/socket.io.js"></script>
   <style>
-    body { font-family: sans-serif; background: #0b0f19; color: #fff; margin: 0; padding: 15px; }
-    .card { background: #161e2e; padding: 15px; margin-bottom: 15px; border-radius: 10px; border: 1px solid #334155; }
-    h3 { margin-top: 0; color: #f59e0b; }
-    input, button, select { padding: 10px; margin: 5px 0; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #fff; width: 100%; box-sizing: border-box; }
-    button { cursor: pointer; background: #f59e0b; color: #000; font-weight: bold; border: none; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-    th, td { border: 1px solid #334155; padding: 8px; text-align: center; }
-    th { background: #1e293b; color: #38bdf8; }
-    .timer-badge { font-size: 20px; font-weight: bold; color: #38bdf8; float: right; }
+    body { background: #0f172a; color: white; font-family: sans-serif; padding: 20px; }
+    .card { background: #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 20px; border: 1px solid #334155; }
+    h2, h3 { color: #f1c40f; margin-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #334155; padding: 8px; text-align: center; font-size: 14px; }
+    th { background: #0f172a; color: #94a3b8; }
+    input, button { padding: 10px; border-radius: 6px; border: 1px solid #334155; margin: 5px 0; }
+    input { background: #0f172a; color: white; width: 100%; }
+    button { background: #10b981; color: white; font-weight: bold; cursor: pointer; border: none; width: 100%; }
+    .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; background: #2563eb; }
   </style>
 </head>
 <body>
 
-  <h2>⚙️ Admin Control Panel <span class="timer-badge" id="adminTimer">00:00</span></h2>
-  <a href="/" style="color: #38bdf8; font-weight: bold;">← Back to Main Game</a>
-
-  <!-- 1. Outcome Control -->
-  <div class="card" style="border-color: #ef4444; margin-top: 15px;">
-    <h3 style="color: #ef4444;">🎲 Set Next Round Result</h3>
-    <p style="font-size: 12px; color: #94a3b8;">နောက်တစ်ကြိမ် ထွက်မယ့် ဂဏန်းကို ရွေးပါ (Auto ထားရင် Random ထွက်ပါမယ်)</p>
-    <select id="targetOutcome">
-      <option value="">🎰 Auto Random</option>
-      <option value="0">Number 0 (Purple/Red)</option>
-      <option value="1">Number 1 (Green)</option>
-      <option value="2">Number 2 (Red)</option>
-      <option value="3">Number 3 (Green)</option>
-      <option value="4">Number 4 (Red)</option>
-      <option value="5">Number 5 (Purple/Green)</option>
-      <option value="6">Number 6 (Red)</option>
-      <option value="7">Number 7 (Green)</option>
-      <option value="8">Number 8 (Red)</option>
-      <option value="9">Number 9 (Green)</option>
-    </select>
-    <button onclick="setOutcome()" style="background: #ef4444; color: #fff;">Save Outcome</button>
+  <h2>⚙️ Realtime Admin Control Panel</h2>
+  
+  <div class="card">
+    <h3>📊 Game Live Stats</h3>
+    <div>လက်ရှိ ကစားနေသူ ဦးရေ (Online Users): <span id="onlineCount" class="badge">0</span></div>
+    <div style="margin-top:10px;">
+      <b>အများဆုံး လောင်းကြေးတင်ထားသော အမျိုးအစား:</b>
+      <div id="topBetCategory" style="color:#f97316; font-size:18px; font-weight:bold; margin-top:5px;">မရှိသေးပါ</div>
+    </div>
   </div>
 
-  <!-- 2. Live Current Round Bets Tracker -->
   <div class="card">
-    <h3>📊 Live Bets (ခုပွဲမှာ User တွေ လောင်းထားသည်များ)</h3>
+    <h3>💰 Deposit / Withdraw Unit (By Phone Number)</h3>
+    <input type="text" id="targetPhone" placeholder="User Phone Number (e.g. 09123456789)">
+    <input type="number" id="unitAmount" placeholder="Amount (e.g. 5000 or -2000)">
+    <button onclick="updateUserUnit()">Update Balance</button>
+  </div>
+
+  <div class="card">
+    <h3>👥 Registered Users List & Balances</h3>
     <table>
       <thead>
         <tr>
-          <th>User</th>
-          <th>Type</th>
-          <th>Value</th>
-          <th>Amount</th>
+          <th>Phone Number</th>
+          <th>Balance (Kyats)</th>
         </tr>
       </thead>
-      <tbody id="liveBetsTable">
-        <tr><td colspan="4">No bets placed yet in this round</td></tr>
-      </tbody>
+      <tbody id="userTableBody"></tbody>
     </table>
-  </div>
-
-  <!-- 3. Balance Control -->
-  <div class="card">
-    <h3>💰 User Balance Deposit / Withdraw</h3>
-    <input type="text" id="targetUser" placeholder="Username (e.g. user1)">
-    <input type="number" id="transferAmt" placeholder="Amount (e.g. 5000 or -2000)">
-    <button onclick="updateBalance()">Update Balance</button>
   </div>
 
 <script>
   const socket = io();
 
-  socket.on('timer_update', (data) => {
-    let secs = data.timer < 10 ? '0' + data.timer : data.timer;
-    document.getElementById('adminTimer').innerText = `P:${data.period} | 00:${secs}`;
+  // Admin connect ဖြစ်သည်နှင့် Data များ တောင်းမည်
+  socket.emit('admin_init');
+
+  socket.on('admin_data', (data) => {
+    document.getElementById('onlineCount').innerText = data.onlineUsers;
+    renderUserList(data.users);
+    renderTopBets(data.betsSummary);
   });
 
-  // Track live bets
-  let currentBetsList = [];
-  socket.on('admin_bet_update', (bet) => {
-    currentBetsList.push(bet);
-    renderLiveBets();
-  });
-
-  socket.on('round_ended', () => {
-    currentBetsList = []; // clear on new round
-    renderLiveBets();
-  });
-
-  function renderLiveBets() {
-    const tbody = document.getElementById('liveBetsTable');
-    if (currentBetsList.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4">No bets placed yet in this round</td></tr>';
-      return;
-    }
-    tbody.innerHTML = currentBetsList.map(b => `
+  function renderUserList(users) {
+    const tbody = document.getElementById('userTableBody');
+    tbody.innerHTML = Object.keys(users).map(phone => `
       <tr>
-        <td><b>${b.username}</b></td>
-        <td>${b.type}</td>
-        <td><span style="color:#f59e0b">${b.value}</span></td>
-        <td>K${b.amount}</td>
+        <td>${phone}</td>
+        <td style="color:#f1c40f; font-weight:bold;">K${users[phone].balance.toLocaleString()}</td>
       </tr>
     `).join('');
   }
 
-  async function setOutcome() {
-    const number = document.getElementById('targetOutcome').value;
-    const res = await fetch('/api/admin/set-result', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ number })
-    });
-    if(res.ok) alert('အထွက်ဂဏန်း သတ်မှတ်ပြီးပါပြီ!');
-  }
-
-  async function updateBalance() {
-    const username = document.getElementById('targetUser').value;
-    const amount = document.getElementById('transferAmt').value;
-
-    const res = await fetch('/api/admin/update-balance', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, amount })
-    });
-    const data = await res.json();
-    if(res.ok) {
-      alert(`User: ${username} ၏ လက်ကျန်ငွေ ပြင်ဆင်ပြီးပါပြီ။ Current: K${data.balance}`);
-    } else {
-      alert(data.error);
+  function renderTopBets(summary) {
+    if (!Object.keys(summary).length) {
+      document.getElementById('topBetCategory').innerText = "လက်ရှိ ပွဲစဉ်တွင် လောင်းကြေး မရှိသေးပါ";
+      return;
     }
+    let maxVal = 0;
+    let topCat = '';
+    for (let cat in summary) {
+      if (summary[cat] > maxVal) {
+        maxVal = summary[cat];
+        topCat = cat;
+      }
+    }
+    document.getElementById('topBetCategory').innerText = `${topCat} (စုစုပေါင်း K${maxVal.toLocaleString()})`;
   }
+
+  function updateUserUnit() {
+    const phone = document.getElementById('targetPhone').value.trim();
+    const amount = parseFloat(document.getElementById('unitAmount').value);
+
+    if (!phone || isNaN(amount)) return alert('ဖုန်းနံပါတ် နှင့် ပမာဏ မှန်ကန်စွာ ဖြည့်ပါ');
+
+    socket.emit('admin_update_balance', { phone, amount });
+    document.getElementById('targetPhone').value = '';
+    document.getElementById('unitAmount').value = '';
+  }
+
+  socket.on('admin_action_success', (msg) => {
+    alert(msg);
+  });
 </script>
 </body>
 </html>
-
