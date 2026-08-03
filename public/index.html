@@ -1,187 +1,245 @@
 <!DOCTYPE html>
-<html lang="my">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CK VIP Lottery - WinGo 1Min</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CKLOTTERY - WinGo</title>
   <script src="/socket.io/socket.io.js"></script>
   <style>
     :root {
-      --bg-color: #0b1120;
-      --card-bg: #1e293b;
-      --accent-gold: #f59e0b;
-      --green-btn: #10b981;
-      --purple-btn: #8b5cf6;
-      --red-btn: #ef4444;
+      --primary-blue: #2563eb;
+      --bg-gradient: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 15%, #f1f5f9 25%, #f8fafc 100%);
+      --green: #10b981;
+      --violet: #a855f7;
+      --red: #ef4444;
+      --orange: #f97316;
     }
 
-    body { margin: 0; font-family: Arial, sans-serif; background-color: var(--bg-color); color: #fff; display: flex; justify-content: center; }
-    .app-container { width: 100%; max-width: 480px; min-height: 100vh; background-color: #0f172a; padding: 15px; box-sizing: border-box; }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
+    body { background: #e2e8f0; display: flex; justify-content: center; }
+    
+    .app { width: 100%; max-width: 480px; min-height: 100vh; background: var(--bg-gradient); padding: 12px; position: relative; padding-bottom: 30px; }
 
-    /* Auth Overlay */
-    .auth-overlay { position: fixed; inset: 0; background: rgba(11, 17, 32, 0.95); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-    .auth-card { background: var(--card-bg); padding: 25px; border-radius: 12px; width: 85%; }
-    .auth-card input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #fff; box-sizing: border-box; }
-    .auth-card button { width: 100%; padding: 12px; background: var(--accent-gold); border: none; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 10px; }
+    /* Header & Balance Card */
+    .header { display: flex; justify-content: space-between; color: white; padding: 5px 0 12px; font-weight: bold; font-size: 18px; }
+    
+    .wallet-card { background: white; border-radius: 16px; padding: 16px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    .wallet-title { color: #64748b; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+    .balance-val { font-size: 26px; font-weight: 800; color: #1e293b; margin: 4px 0 12px; }
+    .wallet-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn-withdraw { background: #ef4444; color: white; border: none; padding: 10px; border-radius: 20px; font-weight: bold; font-size: 14px; }
+    .btn-deposit { background: #10b981; color: white; border: none; padding: 10px; border-radius: 20px; font-weight: bold; font-size: 14px; }
 
-    .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
-    .balance-box { background: #1e293b; padding: 8px 16px; border-radius: 20px; color: var(--accent-gold); font-weight: bold; }
+    /* Game Modes */
+    .modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 15px 0 10px; }
+    .mode-item { background: white; border-radius: 12px; padding: 10px 4px; text-align: center; color: #64748b; font-size: 11px; font-weight: 600; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
+    .mode-item.active { background: #2563eb; color: white; }
 
-    .timer-card { background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 12px; padding: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-    .timer-clock { background: #0f172a; padding: 8px 15px; border-radius: 8px; font-size: 24px; font-weight: bold; color: #38bdf8; }
+    /* Timer Ticket Card */
+    .ticket-card { background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-radius: 16px; padding: 12px 16px; color: white; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .ticket-left { font-size: 12px; opacity: 0.9; }
+    .time-digits { background: white; color: #1e293b; font-size: 18px; font-weight: 800; padding: 4px 8px; border-radius: 6px; letter-spacing: 2px; }
 
-    .color-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-    .btn { padding: 15px; border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; font-size: 16px; }
-    .btn:active { transform: scale(0.96); }
-    .bg-green { background-color: var(--green-btn); }
-    .bg-purple { background-color: var(--purple-btn); }
-    .bg-red { background-color: var(--red-btn); }
-    .bg-big { background-color: #d97706; }
-    .bg-small { background-color: #2563eb; }
+    /* Betting Controls */
+    .color-section { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .btn-color { padding: 12px; border-radius: 10px; border: none; color: white; font-weight: bold; font-size: 15px; cursor: pointer; }
+    .bg-green { background: var(--green); }
+    .bg-violet { background: var(--violet); }
+    .bg-red { background: var(--red); }
 
-    .number-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 15px; }
-    .num-btn { aspect-ratio: 1; border-radius: 8px; border: none; color: white; font-size: 18px; font-weight: bold; cursor: pointer; }
-    .num-btn:active { transform: scale(0.94); }
-    .size-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .grid-balls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; background: white; padding: 12px; border-radius: 16px; margin-bottom: 12px; }
+    .ball-btn { aspect-ratio: 1; border-radius: 50%; border: none; font-size: 18px; font-weight: bold; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
+    .ball-0 { background: linear-gradient(135deg, var(--violet) 50%, var(--red) 50%); }
+    .ball-5 { background: linear-gradient(135deg, var(--violet) 50%, var(--green) 50%); }
 
-    /* History Table */
-    .history-card { background: var(--card-bg); border-radius: 10px; padding: 12px; margin-top: 15px; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; }
-    th, td { padding: 8px; border-bottom: 1px solid #334155; }
-    th { color: #94a3b8; }
-    .ball { display: inline-block; width: 22px; height: 22px; line-height: 22px; border-radius: 50%; font-weight: bold; color: #fff; }
+    .size-section { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+    .btn-size { padding: 14px; border-radius: 25px; border: none; color: white; font-weight: bold; font-size: 16px; cursor: pointer; }
+    .btn-big { background: var(--orange); }
+    .btn-small { background: var(--primary-blue); }
 
-    /* Modal */
-    .popup-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 2000; }
-    .popup-content { background: var(--card-bg); padding: 25px; border-radius: 15px; text-align: center; width: 260px; }
+    /* History Section */
+    .history-card { background: white; border-radius: 16px; padding: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
+    .tab-header { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; gap: 5px; margin-bottom: 10px; }
+    .tab-btn { padding: 8px; border-radius: 8px; border: none; background: #f1f5f9; color: #64748b; font-weight: 600; font-size: 12px; }
+    .tab-btn.active { background: #2563eb; color: white; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; }
+    th { color: #64748b; padding: 8px; font-weight: 600; border-bottom: 1px solid #f1f5f9; }
+    td { padding: 10px 4px; border-bottom: 1px solid #f8fafc; color: #334155; }
+    .res-ball { display: inline-block; width: 20px; height: 20px; line-height: 20px; border-radius: 50%; color: white; font-weight: bold; font-size: 11px; }
+
+    /* Bottom Bet Drawer / Modal */
+    .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; justify-content: flex-end; flex-direction: column; z-index: 1000; }
+    .drawer-content { background: white; border-top-left-radius: 20px; border-top-right-radius: 20px; overflow: hidden; animation: slideUp 0.25s ease-out; }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+    .drawer-header { background: var(--orange); color: white; text-align: center; padding: 12px; font-weight: bold; font-size: 16px; }
+    .drawer-select { background: white; margin: -10px 20px 10px; padding: 6px; border-radius: 8px; text-align: center; color: #1e293b; font-weight: bold; font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    
+    .drawer-body { padding: 15px 20px; }
+    .row-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; color: #475569; font-weight: 600; }
+    
+    .chips { display: flex; gap: 8px; }
+    .chip { flex: 1; padding: 6px; border-radius: 6px; border: 1px solid #e2e8f0; background: #f8fafc; text-align: center; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .chip.active { background: var(--orange); color: white; border-color: var(--orange); }
+
+    .qty-picker { display: flex; align-items: center; gap: 5px; }
+    .btn-qty { width: 32px; height: 32px; border-radius: 6px; border: none; background: var(--orange); color: white; font-size: 18px; font-weight: bold; cursor: pointer; }
+    .qty-val { width: 60px; text-align: center; padding: 6px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; font-weight: bold; }
+
+    .drawer-footer { display: flex; border-top: 1px solid #f1f5f9; }
+    .btn-cancel { flex: 1; padding: 14px; border: none; background: #f1f5f9; color: #64748b; font-weight: bold; font-size: 15px; cursor: pointer; }
+    .btn-confirm { flex: 2; padding: 14px; border: none; background: var(--orange); color: white; font-weight: bold; font-size: 15px; cursor: pointer; }
   </style>
 </head>
 <body>
 
-<div class="auth-overlay" id="authModal">
-  <div class="auth-card">
-    <h2 style="text-align: center; color: var(--accent-gold);">CK VIP LOTTERY</h2>
-    <input type="text" id="username" placeholder="Username">
-    <input type="password" id="password" placeholder="Password">
-    <button onclick="login()">ဝင်ရောက်မည်</button>
-  </div>
-</div>
-
-<div class="app-container">
+<div class="app">
   <div class="header">
-    <h3 style="color: var(--accent-gold); margin:0;">👑 CKLOTTERY</h3>
-    <div class="balance-box" id="balanceDisplay">K0.00</div>
+    <span>‹</span>
+    <span>CKLOTTERY</span>
+    <span>🎧</span>
   </div>
 
-  <div class="timer-card">
-    <div>
-      <div>Win Go 1Min</div>
-      <small id="periodDisplay">P: -</small>
+  <!-- Wallet Card -->
+  <div class="wallet-card">
+    <div class="wallet-title">Wallet balance 🔄</div>
+    <div class="balance-val" id="balanceDisplay">K0.00</div>
+    <div class="wallet-btns">
+      <button class="btn-withdraw">Withdraw</button>
+      <button class="btn-deposit">Deposit</button>
     </div>
-    <div class="timer-clock" id="timerDisplay">00:00</div>
   </div>
 
-  <!-- Betting Buttons -->
-  <div class="color-btns">
-    <button class="btn bg-green" onclick="placeBet('color', 'green', 1000)">အစိမ်း</button>
-    <button class="btn bg-purple" onclick="placeBet('color', 'purple', 1000)">ခရမ်း</button>
-    <button class="btn bg-red" onclick="placeBet('color', 'red', 1000)">အနီ</button>
+  <!-- Game Modes -->
+  <div class="modes">
+    <div class="mode-item active">Win Go 30s</div>
+    <div class="mode-item">Win Go 1Min</div>
+    <div class="mode-item">Win Go 3Min</div>
+    <div class="mode-item">Win Go 5Min</div>
   </div>
 
-  <div class="number-grid">
-    <button class="num-btn bg-purple" onclick="placeBet('number', 0, 1000)">0</button>
-    <button class="num-btn bg-green" onclick="placeBet('number', 1, 1000)">1</button>
-    <button class="num-btn bg-red" onclick="placeBet('number', 2, 1000)">2</button>
-    <button class="num-btn bg-green" onclick="placeBet('number', 3, 1000)">3</button>
-    <button class="num-btn bg-red" onclick="placeBet('number', 4, 1000)">4</button>
-    <button class="num-btn bg-purple" onclick="placeBet('number', 5, 1000)">5</button>
-    <button class="num-btn bg-red" onclick="placeBet('number', 6, 1000)">6</button>
-    <button class="num-btn bg-green" onclick="placeBet('number', 7, 1000)">7</button>
-    <button class="num-btn bg-red" onclick="placeBet('number', 8, 1000)">8</button>
-    <button class="num-btn bg-green" onclick="placeBet('number', 9, 1000)">9</button>
+  <!-- Timer Card -->
+  <div class="ticket-card">
+    <div class="ticket-left">
+      <div>Win Go 30s</div>
+      <small id="periodDisplay">P: 2026080300051925</small>
+    </div>
+    <div>
+      <div style="font-size: 10px; text-align: right; margin-bottom: 2px;">Time remaining</div>
+      <div class="time-digits" id="timerDisplay">00:30</div>
+    </div>
   </div>
 
-  <div class="size-btns">
-    <button class="btn bg-big" onclick="placeBet('size', 'big', 1000)">အကြီး (5-9)</button>
-    <button class="btn bg-small" onclick="placeBet('size', 'small', 1000)">အသေး (0-4)</button>
+  <!-- Color Buttons -->
+  <div class="color-section">
+    <button class="btn-color bg-green" onclick="openBetModal('color', 'Green', 'bg-green')">Green</button>
+    <button class="btn-color bg-violet" onclick="openBetModal('color', 'Violet', 'bg-violet')">Violet</button>
+    <button class="btn-color bg-red" onclick="openBetModal('color', 'Red', 'bg-red')">Red</button>
   </div>
 
-  <!-- History Record Table -->
+  <!-- Number Balls Grid -->
+  <div class="grid-balls">
+    <button class="ball-btn ball-0" onclick="openBetModal('number', 0, 'ball-0')">0</button>
+    <button class="ball-btn bg-green" onclick="openBetModal('number', 1, 'bg-green')">1</button>
+    <button class="ball-btn bg-red" onclick="openBetModal('number', 2, 'bg-red')">2</button>
+    <button class="ball-btn bg-green" onclick="openBetModal('number', 3, 'bg-green')">3</button>
+    <button class="ball-btn bg-red" onclick="openBetModal('number', 4, 'bg-red')">4</button>
+    <button class="ball-btn ball-5" onclick="openBetModal('number', 5, 'ball-5')">5</button>
+    <button class="ball-btn bg-red" onclick="openBetModal('number', 6, 'bg-red')">6</button>
+    <button class="ball-btn bg-green" onclick="openBetModal('number', 7, 'bg-green')">7</button>
+    <button class="ball-btn bg-red" onclick="openBetModal('number', 8, 'bg-red')">8</button>
+    <button class="ball-btn bg-green" onclick="openBetModal('number', 9, 'bg-green')">9</button>
+  </div>
+
+  <!-- Size Buttons -->
+  <div class="size-section">
+    <button class="btn-size btn-big" onclick="openBetModal('size', 'Big', 'btn-big')">Big</button>
+    <button class="btn-size btn-small" onclick="openBetModal('size', 'Small', 'btn-small')">Small</button>
+  </div>
+
+  <!-- History Records -->
   <div class="history-card">
-    <h4 style="margin-top:0; color:#38bdf8;">📜 ထွက်ခဲ့သည့် မှတ်တမ်းများ (History)</h4>
+    <div class="tab-header">
+      <button class="tab-btn active">Game history</button>
+      <button class="tab-btn">Chart</button>
+      <button class="tab-btn">My history</button>
+    </div>
     <table>
       <thead>
         <tr>
           <th>Period</th>
           <th>Number</th>
-          <th>Size</th>
+          <th>Big Small</th>
+          <th>Color</th>
         </tr>
       </thead>
       <tbody id="historyTable">
-        <tr><td colspan="3">Loading records...</td></tr>
+        <tr><td colspan="4">Loading records...</td></tr>
       </tbody>
     </table>
   </div>
 </div>
 
-<div class="popup-modal" id="resultModal">
-  <div class="popup-content">
-    <h2 id="popupTitle"></h2>
-    <p id="popupDetails"></p>
-    <button class="btn bg-big" onclick="closePopup()">OK</button>
+<!-- Bottom Bet Modal / Drawer -->
+<div class="drawer-overlay" id="betDrawer">
+  <div class="drawer-content">
+    <div class="drawer-header" id="modalHeader">Win Go 30s</div>
+    <div class="drawer-select">Select <span id="selectedItem">Big</span></div>
+    
+    <div class="drawer-body">
+      <!-- Balance base chips -->
+      <div class="row-label">
+        <span>Balance</span>
+        <div class="chips">
+          <div class="chip" onclick="setBaseAmt(10)">10</div>
+          <div class="chip" onclick="setBaseAmt(100)">100</div>
+          <div class="chip active" id="chip1000" onclick="setBaseAmt(1000)">1000</div>
+          <div class="chip" onclick="setBaseAmt(10000)">10000</div>
+        </div>
+      </div>
+
+      <!-- Quantity picker -->
+      <div class="row-label">
+        <span>Quantity</span>
+        <div class="qty-picker">
+          <button class="btn-qty" onclick="changeQty(-1)">-</button>
+          <input class="qty-val" type="text" id="qtyInput" value="1" readonly>
+          <button class="btn-qty" onclick="changeQty(1)">+</button>
+        </div>
+      </div>
+
+      <!-- Multiplier Chips -->
+      <div class="chips" style="margin-top: 10px;">
+        <div class="chip active" onclick="setMultiplier(1)">X1</div>
+        <div class="chip" onclick="setMultiplier(5)">X5</div>
+        <div class="chip" onclick="setMultiplier(10)">X10</div>
+        <div class="chip" onclick="setMultiplier(20)">X20</div>
+        <div class="chip" onclick="setMultiplier(50)">X50</div>
+        <div class="chip" onclick="setMultiplier(100)">X100</div>
+      </div>
+    </div>
+
+    <div class="drawer-footer">
+      <button class="btn-cancel" onclick="closeDrawer()">Cancel</button>
+      <button class="btn-confirm" onclick="submitBet()">Total amount K<span id="totalAmount">1,000.00</span></button>
+    </div>
   </div>
 </div>
 
 <script>
   const socket = io();
-  let currentUser = null;
+  let currentUser = { username: 'demoUser', balance: 1299.00 }; // Auto Session / Persistent
+  let activeBet = { type: '', value: '', baseAmt: 1000, qty: 1 };
   let historyList = [];
 
-  // Socket Connected -> Fetch Live Data
-  socket.on('connect', () => {
-    socket.emit('get_init_data');
-  });
+  socket.on('connect', () => { socket.emit('get_init_data'); });
 
   socket.on('init_data', (data) => {
     historyList = data.history || [];
     renderHistory();
     document.getElementById('periodDisplay').innerText = `P: ${data.period}`;
   });
-
-  window.onload = () => {
-    const savedUser = localStorage.getItem('lottery_user');
-    if (savedUser) {
-      currentUser = JSON.parse(savedUser);
-      document.getElementById('authModal').style.display = 'none';
-      initUserSession();
-    }
-  };
-
-  async function login() {
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value.trim();
-
-    if(!username || !password) return alert('Username/Password ဖြည့်ပါ');
-
-    const res = await fetch('/api/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const data = await res.json();
-
-    if (res.ok) {
-      currentUser = data.user;
-      localStorage.setItem('lottery_user', JSON.stringify(currentUser));
-      document.getElementById('authModal').style.display = 'none';
-      initUserSession();
-    } else { alert(data.error); }
-  }
-
-  function initUserSession() {
-    document.getElementById('balanceDisplay').innerText = `K${currentUser.balance.toLocaleString()}`;
-    socket.emit('join', currentUser.username);
-  }
 
   socket.on('timer_update', (data) => {
     let secs = data.timer < 10 ? '0' + data.timer : data.timer;
@@ -196,64 +254,77 @@
 
   function renderHistory() {
     const tbody = document.getElementById('historyTable');
-    if(!historyList || historyList.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="3">မှတ်တမ်း မရှိသေးပါ</td></tr>';
-      return;
-    }
+    if(!historyList.length) { tbody.innerHTML = '<tr><td colspan="4">No history found</td></tr>'; return; }
+    
     tbody.innerHTML = historyList.map(h => {
-      let bg = h.color === 'green' ? '#10b981' : (h.color === 'red' ? '#ef4444' : '#8b5cf6');
+      let bg = h.color === 'green' ? '#10b981' : (h.color === 'red' ? '#ef4444' : '#a855f7');
       return `
         <tr>
           <td>${h.period}</td>
-          <td><span class="ball" style="background:${bg}">${h.number}</span></td>
-          <td>${h.size}</td>
+          <td><span class="res-ball" style="background:${bg}">${h.number}</span></td>
+          <td style="font-weight:600; color:${h.size === 'BIG'?'#f97316':'#2563eb'}">${h.size}</td>
+          <td><span style="color:${bg}">●</span></td>
         </tr>
       `;
     }).join('');
   }
 
-  socket.on('balance_updated', (newBalance) => {
-    currentUser.balance = newBalance;
-    localStorage.setItem('lottery_user', JSON.stringify(currentUser));
-    document.getElementById('balanceDisplay').innerText = `K${newBalance.toLocaleString()}`;
+  // --- Betting Drawer Handler ---
+  function openBetModal(type, value, bgClass) {
+    activeBet.type = type;
+    activeBet.value = value;
+    activeBet.baseAmt = 1000;
+    activeBet.qty = 1;
+    
+    document.getElementById('selectedItem').innerText = value;
+    document.getElementById('betDrawer').style.display = 'flex';
+    updateTotalCalc();
+  }
+
+  function closeDrawer() { document.getElementById('betDrawer').style.display = 'none'; }
+
+  function setBaseAmt(amt) {
+    activeBet.baseAmt = amt;
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    event.target.classList.add('active');
+    updateTotalCalc();
+  }
+
+  function setMultiplier(mult) {
+    activeBet.qty = mult;
+    document.getElementById('qtyInput').value = mult;
+    updateTotalCalc();
+  }
+
+  function changeQty(delta) {
+    activeBet.qty = Math.max(1, activeBet.qty + delta);
+    document.getElementById('qtyInput').value = activeBet.qty;
+    updateTotalCalc();
+  }
+
+  function updateTotalCalc() {
+    let total = activeBet.baseAmt * activeBet.qty;
+    document.getElementById('totalAmount').innerText = total.toLocaleString('en-US', {minimumFractionDigits: 2});
+  }
+
+  function submitBet() {
+    let totalAmt = activeBet.baseAmt * activeBet.qty;
+    socket.emit('place_bet', {
+      username: currentUser.username,
+      type: activeBet.type,
+      value: typeof activeBet.value === 'string' ? activeBet.value.toLowerCase() : activeBet.value,
+      amount: totalAmt
+    });
+    closeDrawer();
+  }
+
+  socket.on('balance_updated', (newBal) => {
+    currentUser.balance = newBal;
+    document.getElementById('balanceDisplay').innerText = `K${newBal.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
     alert("လောင်းကြေး တင်ပြီးပါပြီ!");
   });
 
-  socket.on('error_msg', (msg) => { alert(msg); });
-
-  socket.on('bet_result', (data) => {
-    const modal = document.getElementById('resultModal');
-    const title = document.getElementById('popupTitle');
-    const details = document.getElementById('popupDetails');
-
-    currentUser.balance = data.newBalance;
-    localStorage.setItem('lottery_user', JSON.stringify(currentUser));
-    document.getElementById('balanceDisplay').innerText = `K${data.newBalance.toLocaleString()}`;
-
-    if (data.won) {
-      title.innerText = "🎉 နိုင်ပါသည်!";
-      title.style.color = "#10b981";
-      details.innerText = `ထွက်ဂဏန်း: ${data.result.number} | ရရှိငွေ: K${data.payout}`;
-    } else {
-      title.innerText = "😢 ရှုံးပါသည်";
-      title.style.color = "#ef4444";
-      details.innerText = `ထွက်ဂဏန်း: ${data.result.number}`;
-    }
-    modal.style.display = 'flex';
-  });
-
-  function placeBet(type, value, amount) {
-    if (!currentUser) {
-      alert("ကျေးဇူးပြု၍ Login အရင်ဝင်ပါ");
-      document.getElementById('authModal').style.display = 'flex';
-      return;
-    }
-    socket.emit('place_bet', { username: currentUser.username, type, value, amount });
-  }
-
-  function closePopup() {
-    document.getElementById('resultModal').style.display = 'none';
-  }
+  socket.on('error_msg', (msg) => alert(msg));
 </script>
 </body>
 </html>
