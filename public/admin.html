@@ -1,6 +1,82 @@
-<!doctype html><html lang="my"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CK Admin</title><style>body{background:#0b1020;color:white;font-family:Arial;max-width:600px;margin:auto}.box{margin:16px;padding:18px;background:#151d31;border-radius:18px}.u{padding:12px 0;border-bottom:1px solid #334155}input,button{padding:10px;margin:3px;border-radius:8px}button{background:#f97316;color:white;border:0;font-weight:bold}</style>
-<div class=box><h2>👑 Admin Unit Control</h2><p>User က Unit ကိုယ်တိုင်မထည့်နိုင်ပါ။ Admin ကသာ ထည့်ပေးနိုင်ပါတယ်။</p><div id=users></div></div>
-<script>
-async function load(){let d=await (await fetch('/api/admin/users')).json();if(!d.success)return location='/';users.innerHTML=d.users.filter(x=>x.role==='user').map(x=>`<div class=u><b>${x.phone}</b><br>Unit: ${x.units}<br><input id=a${x.id} type=number value=100><button onclick="act(${x.id},'grant')">+ Grant</button><button onclick="act(${x.id},'set')">Set</button></div>`).join('')}
-async function act(id,type){let a=Number(document.getElementById('a'+id).value),d=await (await fetch('/api/admin/'+type,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:id,amount:a})})).json();alert(d.success?'ပြီးပါပြီ':d.message);load()}load();
-</script></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚙️ Admin Control Panel - Lucky Lottery</title>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #0b0f19; color: #f8fafc; margin: 0; padding: 15px; }
+    .card { background: #161e2e; padding: 20px; margin-bottom: 15px; border-radius: 12px; border: 1px solid #f59e0b; }
+    input, button { padding: 10px; margin: 5px 0; border-radius: 6px; border: 1px solid #334155; background: #0b0f19; color: #fff; width: 100%; box-sizing: border-box; }
+    button { cursor: pointer; background: #f59e0b; font-weight: bold; border: none; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #334155; padding: 8px; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <h2>⚙️ Lucky Lottery - Admin Panel</h2>
+  <a href="/" style="color: #38bdf8;">← Back to Game</a>
+
+  <div class="card">
+    <h3>Direct Unit Transfer</h3>
+    <input type="text" id="admPlayerId" placeholder="Target Player ID (e.g. LL-123456)">
+    <input type="number" id="admAmount" placeholder="Amount (+ Add / - Deduct)">
+    <button onclick="directTransfer()">Update Balance</button>
+  </div>
+
+  <div class="card">
+    <h3>Pending Deposit/Withdraw Requests</h3>
+    <table id="pendingTable">
+      <thead><tr><th>User</th><th>Player ID</th><th>Type</th><th>Amt</th><th>Action</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    async function loadPendingTxs() {
+      const res = await fetch('/api/admin/pending-transactions');
+      if(!res.ok) return alert("Admin access required!");
+      const rows = await res.json();
+      const tbody = document.querySelector('#pendingTable tbody');
+      if (Array.isArray(rows)) {
+        tbody.innerHTML = rows.map(r => `
+          <tr>
+            <td>${r.username}</td>
+            <td>${r.player_id}</td>
+            <td>${r.type}</td>
+            <td>${r.amount}</td>
+            <td><button onclick="approveTx(${r.id})" style="padding: 4px 8px; background: #10b981;">Approve</button></td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    async function approveTx(txId) {
+      const res = await fetch('/api/admin/approve-transaction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ txId })
+      });
+      const data = await res.json();
+      alert(data.message || data.error);
+      loadPendingTxs();
+    }
+
+    async function directTransfer() {
+      const playerId = document.getElementById('admPlayerId').value;
+      const amount = document.getElementById('admAmount').value;
+      const res = await fetch('/api/admin/direct-transfer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId, amount })
+      });
+      const data = await res.json();
+      alert(data.message || data.error);
+    }
+
+    loadPendingTxs();
+  </script>
+</body>
+</html>
+
