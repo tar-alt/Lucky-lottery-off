@@ -3,109 +3,67 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>⚙️ Admin Control Panel - Lucky Lottery</title>
+  <title>⚙️ Admin Full Control Panel</title>
+  <script src="/socket.io/socket.io.js"></script>
   <style>
-    body { font-family: 'Segoe UI', Arial, sans-serif; background: #0b0f19; color: #f8fafc; margin: 0; padding: 15px; }
-    .card { background: #161e2e; padding: 20px; margin-bottom: 15px; border-radius: 12px; border: 1px solid #f59e0b; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0f19; color: #f8fafc; margin: 0; padding: 15px; }
+    .card { background: #161e2e; padding: 18px; margin-bottom: 15px; border-radius: 12px; border: 1px solid #334155; }
     input, button, select { padding: 10px; margin: 5px 0; border-radius: 6px; border: 1px solid #334155; background: #0b0f19; color: #fff; width: 100%; box-sizing: border-box; }
-    button { cursor: pointer; background: #f59e0b; font-weight: bold; border: none; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    button { cursor: pointer; background: #f59e0b; color: #000; font-weight: bold; border: none; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
     th, td { border: 1px solid #334155; padding: 8px; text-align: center; }
-    .btn-del { background: #ef4444; color: white; padding: 4px 8px; border-radius: 4px; }
-    .btn-approve { background: #10b981; color: white; padding: 4px 8px; border-radius: 4px; }
+    .bet-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 10px; }
+    .bet-box { background: #0f172a; padding: 8px; border-radius: 6px; text-align: center; font-size: 12px; border: 1px solid #1e293b; }
   </style>
 </head>
 <body>
 
   <h2>⚙️ Lucky Lottery - Full Admin Control</h2>
-  <a href="/" style="color: #38bdf8; text-decoration: none; font-weight: bold;">← Back to Game</a>
+  <a href="/" style="color: #38bdf8; text-decoration: none; font-weight: bold;">← Back to Game Main Page</a>
 
-  <!-- 🎯 1. Game Outcome Control -->
+  <!-- 1. Next Round Result Control -->
   <div class="card" style="border-color: #ef4444;">
-    <h3 style="color: #ef4444; margin-top: 0;">🎲 Control Next Round Outcome</h3>
-    <p style="font-size: 13px; color: #94a3b8;">နောက်တစ်ကြိမ် ထွက်မယ့် ဂဏန်းကို အပိုင်သတ်မှတ်ပါ။ (Auto ပြန်ထားချင်ပါက Auto ရွေးပါ)</p>
+    <h3 style="color: #ef4444; margin-top:0;">🎲 Control Next Round Outcome</h3>
+    <p style="font-size: 12px; color: #94a3b8; margin-top: 0;">နောက်တစ်ကြိမ် ထွက်မယ့် ဂဏန်းကို အပိုင်သတ်မှတ်ပါ။ (Auto ထားရင် Random ထွက်ပါမည်)</p>
     <select id="targetOutcome">
-      <option value="auto">🎰 Auto Random (Normal Game)</option>
+      <option value="auto">🎰 Auto Random (Normal Engine)</option>
       <option value="0">Number 0</option>
       <option value="1">Number 1</option>
       <option value="2">Number 2</option>
       <option value="3">Number 3</option>
       <option value="4">Number 4</option>
       <option value="5">Number 5</option>
-      ပုံထဲမှာတွေ့ရတဲ့ Admin Panel က Direct Unit Transfer (အမှတ်ဖြည့်ပေးရုံ) နဲ့ Pending Requests တွေကြည့်တဲ့ အခြေခံ လုပ်ဆောင်ချက်လောက်ပဲ ပါသေးတာတွေ့ရပါတယ်။ 
-
-Admin က User တွေကို ထိန်းချုပ်တာ၊ ထွက်ဂဏန်း (Winning Number/Result) တွေကို စိတ်ကြိုက် သတ်မှတ်/ပြောင်းလဲတာတွေ လုပ်နိုင်ဖို့အတွက် Admin Dashboard မှာ **Features (လုပ်ဆောင်ချက်များ)** ထပ်တိုးပေးဖို့ လိုအပ်ပါတယ်။
-
-ဒါတွေကို ဖြည့်ဆည်းဖို့အတွက် backend ရော frontend မှာပါ ထည့်သွင်းပေးရမယ့် အပိုင်းတွေကို အောက်မှာ ခွဲခြားဖော်ပြပေးထားပါတယ်။
+      <option value="6">Number 6</option>
+      <option value="လိုအပ်တဲ့ Features တွေအားလုံး (WinGo 1Min ပုံစံ Betting UI၊ Admin Manual Control၊ Real-time Syncing၊ Auto-Login persistent session၊ Pop-up result) ပါဝင်တဲ့ **Full-stack Node.js + Express + Socket.IO + MongoDB (သို့မဟုတ် SQLite)** Architecture နဲ့ Full Code Structure ကို အောက်မှာ ပြင်ဆင်ပေးထားပါတယ်။
 
 ---
 
-## ၁။ ထွက်ဂဏန်း ပြောင်းလဲခြင်း/သတ်မှတ်ခြင်း (Winning Number Control)
+## 🛠 တည်ဆောက်ပုံ အနှစ်ချုပ် (Key Features)
 
-ဂဏန်းထွက်မယ့်အချိန်မတိုင်မီ သို့မဟုတ် Admin က ကြိုက်တဲ့အချိန်မှာ ထွက်ဂဏန်းကို စိတ်ကြိုက် ပြောင်းလို့ရအောင် လုပ်ဆောင်ပေးရပါမယ်။
-
-*   **UI မှာ ထည့်ရန်:** 
-    *   "Set Winning Number" သို့မဟုတ် "Manage Results" ဆိုတဲ့ Card/Section တစ်ခု ထည့်ပါ။
-    *   ထွက်မယ့်ဂဏန်း ရိုက်ထည့်ရမယ့် Input box ၊ ထွက်မယ့်အချိန် (Round/Session) ရွေးရန် Dropdown နဲ့ **"Set Result"** / **"Force Win Number"** Button ထည့်ပေးရပါမယ်။
-*   **Backend Logic:**
-    *   Admin က ရွေးလိုက်တဲ့ ဂဏန်းကို Database (သို့မဟုတ် Server state) ထဲမှာ သွားသိမ်းပြီး၊ မဲဖွင့်ချိန် ရောက်တဲ့အခါ အဲဒီသတ်မှတ်ထားတဲ့ ဂဏန်းအတိုင်းပဲ ထွက်ပေးသွားအောင် ရေးပေးရပါမယ်။
+1. **Real-time Synchronization (Socket.io):** ကစားသူ အားလုံးမှာ တပြိုင်နက်တည်း Timer ပတ်နေမည်။ Admin က ရလဒ်ပြောင်းလိုက်တာနဲ့ ကစားသူအားလုံးဆီ အချိန်ကိုက် ရောက်ရှိမည်။
+2. **Admin Control:** နံပါတ် အပိုင်သတ်မှတ်ရန် Control Module ပါဝင်မည်။ သတ်မှတ်မထားပါက Random အလိုအလျောက် ထွက်မည်။ User Balance နှင့် Deposit/Withdraw များကို Direct Update လုပ်နိုင်မည်။
+3. **Auto Login / Persistent Session:** LocalStorage (သို့) JWT/Session token အသုံးပြု၍ မည်မျှပင် Browser ပိတ်/ဖွင့်လုပ်သည်ဖြစ်စေ Auto-Login ဖြစ်နေမည်။
+4. **WinGo Style Game UI:** ဓာတ်ပုံ ၃ ပါအတိုင်း ရောင်စုံ ခလုတ်များ၊ အကြီး/အသေး၊ ၀-၉ ဂဏန်းများ ပါဝင်သည့် Dark Modern Betting Dashboard။
 
 ---
 
-## ၂။ User များ အားလုံးကို စာရင်းကြည့်ခြင်းနှင့် ထိန်းချုပ်ခြင်း (User Management)
+## 💻 Full Code Structure
 
-လက်ရှိမှာ User list မပေါ်တဲ့အတွက် User အကောင့်များကို စီမံခန့်ခွဲနိုင်မယ့် Table တစ်ခု သီးသန့် လိုအပ်ပါတယ်။
-
-*   **UI မှာ ထည့်ရန်:**
-    *   **User List Table:** User Name, Player ID, Balance (လက်ကျန်ငွေ/ယူနစ်), Status (Active/Banned), Actions (Edit, Ban, Delete) စတာတွေ ပါဝင်တဲ့ ဇယားတစ်ခု ထည့်ပါ။
-*   **Admin ရရှိမယ့် ထိန်းချုပ်မှုများ (Control Features):**
-    *   **Block / Ban User:** မရိုးမသားလုပ်သော သို့မဟုတ် ပြဿနာရှိသော User ၏ အကောင့်ကို ပိတ်ထားနိုင်ခြင်း။
-    *   **Edit Balance:** User တစ်ဦးစီ၏ Balance ကို တိုက်ရိုက် တိုး/လျှော့ စိတ်ကြိုက် ပြင်နိုင်ခြင်း။
-    *   **Reset Password:** User ၏ Password ကို ပြန်လည်ပြင်ဆင်ပေးနိုင်ခြင်း။
-
----
-
-## ၃။ Bet History / User များ ထိုးထားသော ဂဏန်းများ ကြည့်ရှုခြင်း
-
-ထွက်ဂဏန်း ပြောင်းရာတွင် မည်သည့်ဂဏန်းကို အများဆုံးထိုးထားသည်၊ မည်သည့်ဂဏန်းထွက်လျှင် အမြတ်/အရှုံး ရှိမည်ကို Admin က အရင်ဆုံး သိနိုင်ရန် လိုအပ်ပါတယ်။
-
-*   **UI မှာ ထည့်ရန်:**
-    *   **Live Bets Section:** ယခု Round/Session ထဲမှာ User တွေ ဘာဂဏန်းတွေ ထိုးထားလဲ၊ ဘယ်ဂဏန်းမှာ Total Amount ဘယ်လောက်ရှိလဲဆိုတာ စာရင်းချုပ် (Summary) ပြပေးသည့် ဇယား။
-*   **အကျိုးကျေးဇူး:**
-    *   Admin အနေဖြင့် User တွေ ထိုးထားသည့် ဂဏန်းများကို ကြည့်ပြီးမှ ထွက်ဂဏန်း (Winning Number) ကို စိတ်ကြိုက် ပြောင်းလဲ သတ်မှတ်နိုင်မည်ဖြစ်သည်။
-
----
-
-## Backend Code တွင် ပြင်ဆင်ရန် နမူနာ (HTML/Frontend Structure)
-
-Admin Dashboard HTML မှာ အောက်ပါအတိုင်း UI components များကို ဖြည့်စွက်ရေးသားနိုင်ပါတယ်-
-
-```html
-<!-- Set Winning Number Section -->
-<div class="card">
-  <h3>Set Winning Number (ထွက်ဂဏန်း သတ်မှတ်ရန်)</h3>
-  <form id="set-result-form">
-    <input type="text" id="winning-number" placeholder="Enter Winning Number (e.g. 58)" required />
-    <button type="submit" class="btn">Update Result</button>
-  </form>
-</div>
-
-<!-- User Management Section -->
-<div class="card">
-  <h3>Registered Users (အသုံးပြုသူများ စာရင်း)</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>User ID</th>
-        <th>Name</th>
-        <th>Balance</th>
-        <th>Status</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody id="user-list">
-      <!-- Database မှ User စာရင်းများကို JavaScript ဖြင့် ဆွဲထုတ်ပြသမည် -->
-    </tbody>
-  </table>
-</div>
+### 1. `package.json`
+```json
+{
+  "name": "wingo-lottery-game",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.6.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.0",
+    "cors": "^2.8.5"
+  }
+}
 
