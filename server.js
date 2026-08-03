@@ -166,9 +166,122 @@ function calculateGameResult() {
   return { number: finalNumber, color: color, size: size };
 }
 
-// Server စတင် Run မည့် Port သတ်မှတ်ခြင်း (Render / Local)
+// =========================
+// WIN GO GAME TIMER
+// =========================
+
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+
+let gameSeconds = 30;
+let gamePeriod = 1;
+let gameHistory = [];
+
+// Game Result
+function getGameResult() {
+  let number;
+
+  if (manualTargetResult !== "AUTO") {
+    number = parseInt(manualTargetResult);
+
+    // Admin သတ်မှတ်ထားတဲ့ result ကို တစ်ကြိမ်ပဲသုံးမယ်
+    manualTargetResult = "AUTO";
+  } else {
+    number = Math.floor(Math.random() * 10);
+  }
+
+  let color = "green";
+
+  if (number === 0) {
+    color = "violet-red";
+  } else if (number === 5) {
+    color = "violet-green";
+  } else if (number % 2 === 0) {
+    color = "red";
+  }
+
+  const size = number >= 5 ? "BIG" : "SMALL";
+
+  return {
+    number: number,
+    color: color,
+    size: size
+  };
+}
+
+
+// =========================
+// GAME TIMER
+// =========================
+
+setInterval(() => {
+
+  gameSeconds--;
+
+  // Timer ပြီးရင် Result ထုတ်
+  if (gameSeconds <= 0) {
+
+    const result = getGameResult();
+
+    const historyItem = {
+      period: String(gamePeriod),
+      number: result.number,
+      color: result.color,
+      size: result.size
+    };
+
+    // History သိမ်း
+    gameHistory.unshift(historyItem);
+
+    // 50 ခုထက်ပိုရင် အဟောင်းဖျက်
+    if (gameHistory.length > 50) {
+      gameHistory.pop();
+    }
+
+    // User အားလုံးဆီ Result ပို့
+    io.emit("game_result", historyItem);
+
+    // Next period
+    gamePeriod++;
+
+    // Timer ပြန်စ
+    gameSeconds = 30;
+  }
+
+  // User အားလုံးဆီ Timer ပို့
+  io.emit("timer_update", {
+    timer: gameSeconds,
+    period: String(gamePeriod)
+  });
+
+}, 1000);
+
+
+// =========================
+// SOCKET CONNECTION
+// =========================
+
+io.on("connection", (socket) => {
+
+  console.log("Game user connected:", socket.id);
+
+  // User ဝင်လာတာနဲ့ လက်ရှိ Game Data ပို့
+  socket.emit("init_data", {
+    history: gameHistory,
+    period: String(gamePeriod),
+    timer: gameSeconds
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Game user disconnected:", socket.id);
+  });
+
 });
 
+
+// =========================
+// START SERVER
+// =========================
+
+server.listen(PORT, () => {
+  console.log(`Lucky Lottery server is running on port ${PORT}`);
+});
