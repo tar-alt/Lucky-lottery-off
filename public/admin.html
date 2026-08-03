@@ -3,43 +3,83 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard Control</title>
+  <title>Realtime Admin Control Panel</title>
   <script src="/socket.io/socket.io.js"></script>
   <style>
-    body { background: #0f172a; color: white; font-family: sans-serif; padding: 20px; }
-    .card { background: #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 20px; border: 1px solid #334155; }
-    h2, h3 { color: #f1c40f; margin-bottom: 10px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { border: 1px solid #334155; padding: 8px; text-align: center; font-size: 14px; }
-    th { background: #0f172a; color: #94a3b8; }
-    input, button { padding: 10px; border-radius: 6px; border: 1px solid #334155; margin: 5px 0; }
-    input { background: #0f172a; color: white; width: 100%; }
-    button { background: #10b981; color: white; font-weight: bold; cursor: pointer; border: none; width: 100%; }
-    .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; background: #2563eb; }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
+    body { background: #0b1329; color: #ffffff; padding: 20px; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 500px; }
+
+    .header { font-size: 22px; font-weight: 800; color: #f1c40f; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+
+    .card { background: #172442; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 18px; margin-bottom: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+    .card-title { font-size: 16px; font-weight: 700; color: #f39c12; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+    .badge { background: #2563eb; color: white; padding: 2px 8px; border-radius: 6px; font-size: 14px; }
+    .alert-text { color: #f97316; font-weight: bold; margin-top: 8px; font-size: 15px; }
+
+    .form-input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; margin-bottom: 10px; font-size: 14px; outline: none; }
+    .form-select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: #f1c40f; font-weight: bold; margin-bottom: 10px; font-size: 14px; outline: none; cursor: pointer; }
+
+    .btn { width: 100%; padding: 12px; border: none; border-radius: 10px; font-weight: bold; font-size: 15px; cursor: pointer; transition: 0.2s; }
+    .btn-green { background: #10b981; color: white; }
+    .btn-green:hover { background: #059669; }
+    .btn-orange { background: #f97316; color: white; }
+    .btn-orange:hover { background: #ea580c; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; margin-top: 8px; }
+    th { color: #94a3b8; padding: 8px 4px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    td { padding: 10px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #e2e8f0; }
   </style>
 </head>
 <body>
 
-  <h2>⚙️ Realtime Admin Control Panel</h2>
-  
+<div class="container">
+  <div class="header">⚙️ Realtime Admin Control Panel</div>
+
+  <!-- Game Live Stats -->
   <div class="card">
-    <h3>📊 Game Live Stats</h3>
-    <div>လက်ရှိ ကစားနေသူ ဦးရေ (Online Users): <span id="onlineCount" class="badge">0</span></div>
-    <div style="margin-top:10px;">
-      <b>အများဆုံး လောင်းကြေးတင်ထားသော အမျိုးအစား:</b>
-      <div id="topBetCategory" style="color:#f97316; font-size:18px; font-weight:bold; margin-top:5px;">မရှိသေးပါ</div>
+    <div class="card-title">📊 Game Live Stats</div>
+    <p>လက်ရှိ ကစားနေသူ ဦးရေ (Online Users): <span class="badge" id="onlineUsersCount">0</span></p>
+    <div style="margin-top: 12px;">
+      <p>အများဆုံး လောင်းကြေးတင်ထားသော အမျိုးအစား:</p>
+      <p class="alert-text" id="topBetStatus">လက်ရှိ ပွဲစဉ်တွင် လောင်းကြေး မရှိသေးပါ</p>
     </div>
   </div>
 
-  <div class="card">
-    <h3>💰 Deposit / Withdraw Unit (By Phone Number)</h3>
-    <input type="text" id="targetPhone" placeholder="User Phone Number (e.g. 09123456789)">
-    <input type="number" id="unitAmount" placeholder="Amount (e.g. 5000 or -2000)">
-    <button onclick="updateUserUnit()">Update Balance</button>
+  <!-- 🎯 Target Result Control (ကျမည့်နံပါတ် ရွေးရန်) -->
+  <div class="card" style="border: 1px solid #f39c12;">
+    <div class="card-title">🎯 Result Control (ကျမည့်နံပါတ် သတ်မှတ်ရန်)</div>
+    <p style="font-size: 12px; color: #94a3b8; margin-bottom: 10px;">
+      အောက်ပါအကွက်တွင် ဂဏန်း (0 - 9) ရွေးထားပါက နောက်ပွဲစဉ် ရလဒ်ထွက်လျှင် ထိုဂဏန်းအတိုင်း အော်တိုထွက်ပေးမည် ဖြစ်ပါသည်။ (Auto Dynamic ပြန်ထားလိုပါက Auto ထားပါ)
+    </p>
+    <select id="targetNumberSelect" class="form-select">
+      <option value="AUTO">🔄 Auto Random System (အလိုအလျောက်)</option>
+      <option value="0">0 (Violet + Red)</option>
+      <option value="1">1 (Green / Small)</option>
+      <option value="2">2 (Red / Small)</option>
+      <option value="3">3 (Green / Small)</option>
+      <option value="4">4 (Red / Small)</option>
+      <option value="5">5 (Violet + Green)</option>
+      <option value="6">6 (Red / Big)</option>
+      <option value="7">7 (Green / Big)</option>
+      <option value="8">8 (Red / Big)</option>
+      <option value="9">9 (Green / Big)</option>
+    </select>
+    <button class="btn btn-orange" onclick="setNextResult()">Set Target Result (သတ်မှတ်မည်)</button>
   </div>
 
+  <!-- Deposit / Withdraw Unit -->
   <div class="card">
-    <h3>👥 Registered Users List & Balances</h3>
+    <div class="card-title">💰 Deposit / Withdraw Unit (By Phone Number)</div>
+    <input type="text" id="adminUserPhone" class="form-input" placeholder="User Phone Number (e.g. 09123456789)">
+    <input type="number" id="adminAmount" class="form-input" placeholder="Amount (e.g. 5000 or -2000)">
+    <button class="btn btn-green" onclick="updateUserBalance()">Update Balance</button>
+  </div>
+
+  <!-- Registered Users List -->
+  <div class="card">
+    <div class="card-title">👥 Registered Users List & Balances</div>
     <table>
       <thead>
         <tr>
@@ -47,62 +87,57 @@
           <th>Balance (Kyats)</th>
         </tr>
       </thead>
-      <tbody id="userTableBody"></tbody>
+      <tbody id="userListBody">
+        <tr>
+          <td colspan="2" style="text-align:center; color:#64748b;">Loading users...</td>
+        </tr>
+      </tbody>
     </table>
   </div>
+</div>
 
 <script>
   const socket = io();
 
-  // Admin connect ဖြစ်သည်နှင့် Data များ တောင်းမည်
-  socket.emit('admin_init');
+  // Admin မင်္ဂလာပါ Data ခေါ်ယူခြင်း
+  socket.on('admin_stats_update', (data) => {
+    document.getElementById('onlineUsersCount').innerText = data.onlineCount || 0;
+    document.getElementById('topBetStatus').innerText = data.topBetInfo || "လက်ရှိ ပွဲစဉ်တွင် လောင်းကြေး မရှိသေးပါ";
 
-  socket.on('admin_data', (data) => {
-    document.getElementById('onlineCount').innerText = data.onlineUsers;
-    renderUserList(data.users);
-    renderTopBets(data.betsSummary);
+    // User List Render
+    if (data.users && data.users.length > 0) {
+      const tbody = document.getElementById('userListBody');
+      tbody.innerHTML = data.users.map(u => `
+        <tr>
+          <td style="color:#60a5fa; font-weight:bold;">${u.phone}</td>
+          <td style="color:#f1c40f; font-weight:bold;">K${u.balance.toLocaleString()}</td>
+        </tr>
+      `).join('');
+    }
   });
 
-  function renderUserList(users) {
-    const tbody = document.getElementById('userTableBody');
-    tbody.innerHTML = Object.keys(users).map(phone => `
-      <tr>
-        <td>${phone}</td>
-        <td style="color:#f1c40f; font-weight:bold;">K${users[phone].balance.toLocaleString()}</td>
-      </tr>
-    `).join('');
+  // ကျမည့်နံပါတ် သတ်မှတ်ပေးသည့် ပွဲစလွှတ်မည်
+  function setNextResult() {
+    const selectedNum = document.getElementById('targetNumberSelect').value;
+    socket.emit('admin_set_target_result', { target: selectedNum });
+    alert(`ကျမည့် ရလဒ်အား [ ${selectedNum} ] အဖြစ် သတ်မှတ်လိုက်ပါပြီ!`);
   }
 
-  function renderTopBets(summary) {
-    if (!Object.keys(summary).length) {
-      document.getElementById('topBetCategory').innerText = "လက်ရှိ ပွဲစဉ်တွင် လောင်းကြေး မရှိသေးပါ";
-      return;
-    }
-    let maxVal = 0;
-    let topCat = '';
-    for (let cat in summary) {
-      if (summary[cat] > maxVal) {
-        maxVal = summary[cat];
-        topCat = cat;
-      }
-    }
-    document.getElementById('topBetCategory').innerText = `${topCat} (စုစုပေါင်း K${maxVal.toLocaleString()})`;
-  }
+  // Balance တိုး/လျှော့ လုပ်မည်
+  function updateUserBalance() {
+    const phone = document.getElementById('adminUserPhone').value.trim();
+    const amount = parseFloat(document.getElementById('adminAmount').value);
 
-  function updateUserUnit() {
-    const phone = document.getElementById('targetPhone').value.trim();
-    const amount = parseFloat(document.getElementById('unitAmount').value);
-
-    if (!phone || isNaN(amount)) return alert('ဖုန်းနံပါတ် နှင့် ပမာဏ မှန်ကန်စွာ ဖြည့်ပါ');
+    if (!phone || isNaN(amount)) {
+      return alert('ကျေးဇူးပြု၍ ဖုန်းနံပါတ်နှင့် ပမာဏ မှန်ကန်စွာ ဖြည့်ပါ');
+    }
 
     socket.emit('admin_update_balance', { phone, amount });
-    document.getElementById('targetPhone').value = '';
-    document.getElementById('unitAmount').value = '';
+    document.getElementById('adminUserPhone').value = '';
+    document.getElementById('adminAmount').value = '';
+    alert('Balance Update လုပ်ဆောင်ပြီးပါပြီ!');
   }
-
-  socket.on('admin_action_success', (msg) => {
-    alert(msg);
-  });
 </script>
 </body>
 </html>
+
