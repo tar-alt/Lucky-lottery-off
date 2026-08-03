@@ -24,10 +24,10 @@ let currentRound = {
   manualResult: null
 };
 
-// Admin User Initial Setup
+// Admin Initial Setup
 users['admin'] = { password: 'adminpassword', balance: 999999, role: 'admin' };
 
-// Real-time Game Loop
+// Real-time Game Loop (60 seconds)
 setInterval(() => {
   currentRound.timer--;
 
@@ -52,16 +52,18 @@ setInterval(() => {
       color: color
     };
 
+    // Save history (Keep last 20)
     gameHistory.unshift(roundResult);
     if (gameHistory.length > 20) gameHistory.pop();
 
     settleRoundBets(roundResult);
 
-    currentRound.period = (parseInt(currentRound.period) + 1).toString();
+    // Increment period
+    currentRound.period = (BigInt(currentRound.period) + 1n).toString();
     currentRound.timer = 60;
-    currentRound.manualResult = null;
+    currentRound.manualResult = null; // reset to auto
 
-    io.emit('round_ended', roundResult);
+    io.emit('round_ended', { result: roundResult, history: gameHistory });
   }
 
   io.emit('timer_update', { timer: currentRound.timer, period: currentRound.period });
@@ -81,18 +83,21 @@ function settleRoundBets(result) {
       } else if (bet.type === 'size' && bet.value === (result.number >= 5 ? 'big' : 'small')) {
         won = true;
         payout = bet.amount * 2;
+      } else if (bet.type === 'color' && bet.value === result.color) {
+        won = true;
+        payout = bet.amount * 2;
       }
 
       if (won) {
         user.balance += payout;
       }
 
-      io.to(username).emit('bet_result', { won, payout, result });
+      io.to(username).emit('bet_result', { won, payout, result, newBalance: user.balance });
     }
   });
 }
 
-// API Endpoints
+// APIs
 app.post('/api/auth', (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Please enter all fields' });
@@ -125,18 +130,17 @@ app.post('/api/admin/update-balance', (req, res) => {
   res.status(404).json({ error: 'User not found' });
 });
 
-app.get('/api/admin/dashboard', (req, res) => {
-  const userList = Object.keys(users).map(u => ({
-    username: u,
-    balance: users[u].balance,
-    role: users[u].role,
-    currentBet: users[u].bets ? users[u].bets[currentRound.period] : null
-  }));
-  res.json({ users: userList, currentRound, pendingTransactions });
-});
-
-// WebSocket Setup
+// WebSocket Connection Sync
 io.on('connection', (socket) => {
+  // Direct sync on user join
+  socket.on('get_init_data', () => {
+    socket.emit('init_data', {
+      history: gameHistory,
+      period: currentRound.period,
+      timer: currentRound.timer
+    });
+  });
+
   socket.on('join', (username) => {
     socket.join(username);
   });
@@ -151,7 +155,7 @@ io.on('connection', (socket) => {
       socket.emit('balance_updated', user.balance);
       io.emit('admin_bet_update', { username, type, value, amount, period: currentRound.period });
     } else {
-      socket.emit('error_msg', 'Insufficient balance');
+      socket.emit('error_msg', 'လက်ကျန်ငွေ မလုံလောက်ပါ သို့မဟုတ် Login ပြန်ဝင်ပါ');
     }
   });
 });
