@@ -1,23 +1,301 @@
-const express=require("express"),session=require("express-session"),Database=require("better-sqlite3"),crypto=require("crypto"),path=require("path");
-const app=express(),db=new Database("data.db");
-app.use(express.json());app.use(express.static(path.join(__dirname,"public")));
-app.use(session({secret:process.env.SESSION_SECRET||"change-this",resave:false,saveUninitialized:false}));
-db.exec(`CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY AUTOINCREMENT,phone TEXT UNIQUE,password TEXT,role TEXT DEFAULT 'user',units INTEGER DEFAULT 0);
-CREATE TABLE IF NOT EXISTS bets(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER,period TEXT,choice TEXT,amount INTEGER,result INTEGER,status TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);`);
-const hash=x=>crypto.createHash("sha256").update(x).digest("hex");
-const ap=process.env.ADMIN_PHONE||"admin", aw=process.env.ADMIN_PASSWORD||"admin123";
-if(!db.prepare("SELECT id FROM users WHERE phone=?").get(ap))db.prepare("INSERT INTO users(phone,password,role) VALUES(?,?,?)").run(ap,hash(aw),"admin");
-const auth=(req,res,next)=>req.session.user?next():res.status(401).json({success:false,message:"Login ဝင်ပါ"});
-const adm=(req,res,next)=>req.session.user?.role==="admin"?next():res.status(403).json({success:false,message:"Admin only"});
-app.post("/api/register",(q,s)=>{let{phone,password}=q.body||{};if(!phone||!password)return s.json({success:false,message:"အချက်အလက်ဖြည့်ပါ"});try{let r=db.prepare("INSERT INTO users(phone,password) VALUES(?,?)").run(String(phone).trim(),hash(password));let u=db.prepare("SELECT id,phone,role,units FROM users WHERE id=?").get(r.lastInsertRowid);q.session.user=u;s.json({success:true,user:u})}catch(e){s.json({success:false,message:"အကောင့်ရှိပြီးသားပါ"})}});
-app.post("/api/login",(q,s)=>{let{phone,password}=q.body||{},u=db.prepare("SELECT id,phone,role,units FROM users WHERE phone=? AND password=?").get(String(phone||"").trim(),hash(password||""));if(!u)return s.json({success:false,message:"Login မမှန်ပါ"});q.session.user=u;s.json({success:true,user:u})});
-app.post("/api/logout",(q,s)=>q.session.destroy(()=>s.json({success:true})));
-app.get("/api/me",auth,(q,s)=>{let u=db.prepare("SELECT id,phone,role,units FROM users WHERE id=?").get(q.session.user.id);q.session.user=u;s.json({success:true,user:u})});
-app.get("/api/admin/users",adm,(q,s)=>s.json({success:true,users:db.prepare("SELECT id,phone,role,units FROM users ORDER BY id DESC").all()}));
-app.post("/api/admin/grant",adm,(q,s)=>{let id=+q.body.userId,a=+q.body.amount;if(!Number.isInteger(id)||!Number.isInteger(a)||a<1)return s.json({success:false,message:"ပမာဏမမှန်ပါ"});let r=db.prepare("UPDATE users SET units=units+? WHERE id=? AND role='user'").run(a,id);s.json({success:!!r.changes,message:r.changes?"":"User မတွေ့ပါ"})});
-app.post("/api/admin/set",adm,(q,s)=>{let id=+q.body.userId,a=+q.body.amount;if(!Number.isInteger(id)||!Number.isInteger(a)||a<0)return s.json({success:false,message:"ပမာဏမမှန်ပါ"});db.prepare("UPDATE users SET units=? WHERE id=? AND role='user'").run(a,id);s.json({success:true})});
-app.post("/api/bet",auth,(q,s)=>{let choice=String(q.body.choice||""),a=+q.body.amount,u=db.prepare("SELECT * FROM users WHERE id=?").get(q.session.user.id);if(!Number.isInteger(a)||a<1)return s.json({success:false,message:"Unit ပမာဏမမှန်ပါ"});if(u.units<a)return s.json({success:false,message:"Admin ထည့်ပေးထားတဲ့ Unit မလုံလောက်ပါ"});let n=Math.floor(Math.random()*10),win=Math.random()<.5,gain=win?a*2:0,period=Date.now().toString();db.prepare("UPDATE users SET units=units-?+? WHERE id=?").run(a,gain,u.id);db.prepare("INSERT INTO bets(user_id,period,choice,amount,result,status) VALUES(?,?,?,?,?,?)").run(u.id,period,choice,a,n,win?"WIN":"LOSE");let nu=db.prepare("SELECT id,phone,role,units FROM users WHERE id=?").get(u.id);q.session.user=nu;s.json({success:true,user:nu,result:{period,number:n,win,gain}})});
-app.get("/api/history",auth,(q,s)=>s.json({success:true,rows:db.prepare("SELECT period,choice,amount,result,status FROM bets WHERE user_id=? ORDER BY id DESC LIMIT 30").all(q.session.user.id)}));
-app.get("/admin",(q,s)=>q.session.user?.role==="admin"?s.sendFile(path.join(__dirname,"public","admin.html")):s.redirect("/"));
-app.listen(process.env.PORT||3000,"0.0.0.0");
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+const sqlite3 = require('sqlite3').verbose();
+const bcrypt = require('bcryptjs');
+const session = require('express-session');
+const path = require('path');
+
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server);
+
+const PORT = process.env.PORT || 3000;
+
+// Database Setup
+const db = new sqlite3.Database('./lucky_lottery.db');
+
+db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_id TEXT UNIQUE,
+    username TEXT UNIQUE,
+    password TEXT,
+    role TEXT DEFAULT 'user',
+    balance REAL DEFAULT 0.0
+  )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    type TEXT,
+    amount REAL,
+    status TEXT DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS game_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    round_id INTEGER,
+    result INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  // Initial Admin Account
+  db.get("SELECT * FROM users WHERE username = 'admin'", async (err, row) => {
+    if (!row) {
+      const hash = await bcrypt.hash('admin123', 10);
+      db.run("INSERT INTO users (player_id, username, password, role, balance) VALUES (?, ?, ?, ?, ?)",
+        ['PID-ADMIN', 'admin', hash, 'admin', 1000000]);
+    }
+  });
+});
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+const sessionMiddleware = session({
+  secret: 'lucky_lottery_secret_key_2026',
+  resave: false,
+  saveUninitialized: false
+});
+app.use(sessionMiddleware);
+
+io.use((socket, next) => {
+  sessionMiddleware(socket.request, {}, next);
+});
+
+function generatePlayerID() {
+  return 'LL-' + Math.floor(100000 + Math.random() * 900000);
+}
+
+// REST APIs
+app.post('/api/register', async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ error: 'Username/Password required' });
+
+  try {
+    const hash = await bcrypt.hash(password, 10);
+    const playerId = generatePlayerID();
+
+    db.run("INSERT INTO users (player_id, username, password) VALUES (?, ?, ?)",
+      [playerId, username, hash], function(err) {
+        if (err) return res.status(400).json({ error: 'Username already taken' });
+        res.json({ success: true, message: 'Account registered successfully!' });
+      });
+  } catch (e) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+  db.get("SELECT * FROM users WHERE username = ?", [username], async (err, user) => {
+    if (err || !user) return res.status(400).json({ error: 'Invalid credentials' });
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) return res.status(400).json({ error: 'Invalid credentials' });
+
+    req.session.userId = user.id;
+    req.session.role = user.role;
+    res.json({ success: true, user: { id: user.id, player_id: user.player_id, username: user.username, role: user.role, balance: user.balance } });
+  });
+});
+
+app.post('/api/logout', (req, res) => {
+  req.session.destroy();
+  res.json({ success: true });
+});
+
+app.get('/api/me', (req, res) => {
+  if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+
+  db.get("SELECT id, player_id, username, role, balance FROM users WHERE id = ?", [req.session.userId], (err, user) => {
+    if (err || !user) return res.status(404).json({ error: 'User not found' });
+    res.json(user);
+  });
+});
+
+app.post('/api/request-transaction', (req, res) => {
+  if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { type, amount } = req.body;
+  const parsedAmount = parseFloat(amount);
+  if (!parsedAmount || parsedAmount <= 0) return res.status(400).json({ error: 'Invalid amount' });
+
+  if (type === 'withdraw') {
+    db.get("SELECT balance FROM users WHERE id = ?", [req.session.userId], (err, user) => {
+      if (user.balance < parsedAmount) return res.status(400).json({ error: 'Insufficient balance' });
+      createTx();
+    });
+  } else {
+    createTx();
+  }
+
+  function createTx() {
+    db.run("INSERT INTO transactions (user_id, type, amount) VALUES (?, ?, ?)",
+      [req.session.userId, type, parsedAmount], function(err) {
+        if (err) return res.status(500).json({ error: 'Failed to place request' });
+        res.json({ success: true, message: 'Request submitted for Admin review.' });
+      });
+  }
+});
+
+app.get('/api/my-history', (req, res) => {
+  if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+
+  db.all("SELECT type, amount, status, created_at FROM transactions WHERE user_id = ? ORDER BY id DESC LIMIT 20", [req.session.userId], (err, rows) => {
+    res.json(rows || []);
+  });
+});
+
+app.get('/api/game-history', (req, res) => {
+  db.all("SELECT round_id, result, created_at FROM game_history ORDER BY id DESC LIMIT 10", (err, rows) => {
+    res.json(rows || []);
+  });
+});
+
+// ADMIN APIs
+function isAdmin(req, res, next) {
+  if (req.session.role === 'admin') return next();
+  res.status(403).json({ error: 'Admin access required' });
+}
+
+app.get('/api/admin/pending-transactions', isAdmin, (req, res) => {
+  db.all(`SELECT t.id, u.username, u.player_id, t.type, t.amount, t.created_at 
+          FROM transactions t JOIN users u ON t.user_id = u.id 
+          WHERE t.status = 'pending'`, (err, rows) => {
+    res.json(rows || []);
+  });
+});
+
+app.post('/api/admin/approve-transaction', isAdmin, (req, res) => {
+  const { txId } = req.body;
+
+  db.get("SELECT * FROM transactions WHERE id = ? AND status = 'pending'", [txId], (err, tx) => {
+    if (!tx) return res.status(404).json({ error: 'Transaction not found or already processed' });
+
+    db.get("SELECT balance FROM users WHERE id = ?", [tx.user_id], (err, user) => {
+      let newBalance = user.balance;
+
+      if (tx.type === 'deposit') {
+        newBalance += tx.amount;
+      } else if (tx.type === 'withdraw') {
+        if (user.balance < tx.amount) return res.status(400).json({ error: 'User balance is insufficient' });
+        newBalance -= tx.amount;
+      }
+
+      db.run("UPDATE users SET balance = ? WHERE id = ?", [newBalance, tx.user_id], () => {
+        db.run("UPDATE transactions SET status = 'approved' WHERE id = ?", [txId], () => {
+          res.json({ success: true, message: 'Transaction Approved' });
+        });
+      });
+    });
+  });
+});
+
+app.post('/api/admin/direct-transfer', isAdmin, (req, res) => {
+  const { playerId, amount } = req.body;
+  const parsedAmount = parseFloat(amount);
+
+  db.get("SELECT id, balance FROM users WHERE player_id = ?", [playerId], (err, targetUser) => {
+    if (!targetUser) return res.status(404).json({ error: 'Player ID not found' });
+
+    const newBalance = targetUser.balance + parsedAmount;
+    if (newBalance < 0) return res.status(400).json({ error: 'Balance cannot go below 0' });
+
+    db.run("UPDATE users SET balance = ? WHERE id = ?", [newBalance, targetUser.id], () => {
+      db.run("INSERT INTO transactions (user_id, type, amount, status) VALUES (?, ?, ?, 'approved')",
+        [targetUser.id, parsedAmount >= 0 ? 'admin_credit' : 'admin_debit', Math.abs(parsedAmount)]);
+      res.json({ success: true, message: 'Units updated successfully' });
+    });
+  });
+});
+
+// WIN GO 1-MIN GAME ENGINE
+let gameRound = 20260001;
+let timer = 60;
+let currentBets = [];
+let onlineUsersCount = 0;
+
+setInterval(() => {
+  timer--;
+
+  if (timer <= 0) {
+    const resultNumber = Math.floor(Math.random() * 10);
+
+    currentBets.forEach(bet => {
+      const isWin = bet.number === resultNumber;
+      const winAmount = isWin ? bet.amount * 9 : 0;
+
+      if (isWin) {
+        db.run("UPDATE users SET balance = balance + ? WHERE id = ?", [winAmount, bet.userId]);
+      }
+
+      io.to(`user_${bet.userId}`).emit('roundResult', {
+        win: isWin,
+        amount: isWin ? winAmount : bet.amount,
+        selectedNumber: bet.number,
+        winningNumber: resultNumber
+      });
+    });
+
+    db.run("INSERT INTO game_history (round_id, result) VALUES (?, ?)", [gameRound, resultNumber]);
+
+    io.emit('gameFinished', { round: gameRound, result: resultNumber });
+
+    gameRound++;
+    timer = 60;
+    currentBets = [];
+  }
+
+  io.emit('timerUpdate', { round: gameRound, timer, onlineCount: onlineUsersCount });
+}, 1000);
+
+// SOCKET.IO
+io.on('connection', (socket) => {
+  onlineUsersCount++;
+  io.emit('onlineUpdate', onlineUsersCount);
+
+  const sessionData = socket.request.session;
+  if (sessionData && sessionData.userId) {
+    socket.join(`user_${sessionData.userId}`);
+  }
+
+  socket.on('disconnect', () => {
+    onlineUsersCount = Math.max(0, onlineUsersCount - 1);
+    io.emit('onlineUpdate', onlineUsersCount);
+  });
+
+  socket.on('placeBet', (data) => {
+    const userId = sessionData ? sessionData.userId : null;
+    if (!userId) return socket.emit('errorMsg', 'Please log in first.');
+
+    if (timer <= 10) return socket.emit('errorMsg', 'Betting is closed for this round!');
+
+    const { number, amount } = data;
+    const betNumber = parseInt(number);
+    const betAmount = parseFloat(amount);
+
+    if (isNaN(betNumber) || betNumber < 0 || betNumber > 9 || isNaN(betAmount) || betAmount <= 0) {
+      return socket.emit('errorMsg', 'Invalid number (0-9) or amount.');
+    }
+
+    db.get("SELECT balance FROM users WHERE id = ?", [userId], (err, user) => {
+      if (err || !user || user.balance < betAmount) {
+        return socket.emit('errorMsg', 'Insufficient Unit Balance!');
+      }
+
+      db.run("UPDATE users SET balance = balance - ? WHERE id = ?", [betAmount, userId], () => {
+        currentBets.push({ userId, number: betNumber, amount: betAmount });
+        socket.emit('betConfirmed', { number: betNumber, amount: betAmount });
+      });
+    });
+  });
+});
+
+server.listen(PORT, () => {
+  console.log(`Lucky Lottery Server running on port ${PORT}`);
+});
 
