@@ -3,115 +3,140 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CKLOTTERY - WinGo</title>
+  <title>Lucky Lottery - WinGo</title>
   <script src="/socket.io/socket.io.js"></script>
   <style>
     :root {
-      --primary-blue: #2563eb;
-      --bg-gradient: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 15%, #f1f5f9 25%, #f8fafc 100%);
-      --green: #10b981;
-      --violet: #a855f7;
-      --red: #ef4444;
-      --orange: #f97316;
+      --bg-main: linear-gradient(180deg, #0f172a 0%, #1e293b 40%, #0f172a 100%);
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --green-3d: linear-gradient(180deg, #10b981 0%, #059669 100%);
+      --violet-3d: linear-gradient(180deg, #a855f7 0%, #7e22ce 100%);
+      --red-3d: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+      --orange-3d: linear-gradient(180deg, #f97316 0%, #ea580c 100%);
+      --blue-3d: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
     }
 
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
-    body { background: #e2e8f0; display: flex; justify-content: center; }
+    body { background: #020617; color: white; display: flex; justify-content: center; }
     
-    .app { width: 100%; max-width: 480px; min-height: 100vh; background: var(--bg-gradient); padding: 12px; position: relative; padding-bottom: 30px; }
+    .app { width: 100%; max-width: 480px; min-height: 100vh; background: var(--bg-main); padding: 12px; position: relative; padding-bottom: 40px; }
 
-    /* Header & Balance Card */
-    .header { display: flex; justify-content: space-between; color: white; padding: 5px 0 12px; font-weight: bold; font-size: 18px; }
-    
-    .wallet-card { background: white; border-radius: 16px; padding: 16px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-    .wallet-title { color: #64748b; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 5px; }
-    .balance-val { font-size: 26px; font-weight: 800; color: #1e293b; margin: 4px 0 12px; }
+    /* Auth / Login Gate Overlay */
+    #authOverlay { position: fixed; inset: 0; background: #0f172a; z-index: 2000; display: flex; justify-content: center; align-items: center; padding: 20px; }
+    .auth-card { background: #1e293b; width: 100%; max-width: 400px; padding: 25px; border-radius: 20px; border: 1px solid var(--card-border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; }
+    .auth-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 14px; outline: none; }
+    .auth-btn { width: 100%; padding: 12px; background: var(--green-3d); border: none; border-radius: 10px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 0 #047857; }
+
+    /* Top Bar Header */
+    .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--card-border); margin-bottom: 12px; }
+    .brand-title { font-size: 20px; font-weight: 900; background: linear-gradient(90deg, #f39c12, #f1c40f); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+    /* Wallet Card */
+    .wallet-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 16px; text-align: center; backdrop-filter: blur(10px); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
+    .balance-val { font-size: 28px; font-weight: 800; color: #f1c40f; margin: 6px 0 14px; }
     .wallet-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .btn-withdraw { background: #ef4444; color: white; border: none; padding: 10px; border-radius: 20px; font-weight: bold; font-size: 14px; }
-    .btn-deposit { background: #10b981; color: white; border: none; padding: 10px; border-radius: 20px; font-weight: bold; font-size: 14px; }
+    
+    /* 3D Buttons Style */
+    .btn-3d { border: none; padding: 12px; border-radius: 14px; color: white; font-weight: bold; font-size: 14px; cursor: pointer; transition: all 0.1s ease; position: relative; }
+    .btn-3d:active { transform: translateY(3px); box-shadow: none !important; }
+    .btn-withdraw { background: var(--red-3d); box-shadow: 0 4px 0 #b91c1c; }
+    .btn-deposit { background: var(--green-3d); box-shadow: 0 4px 0 #047857; }
+    .btn-history-log { background: var(--blue-3d); box-shadow: 0 4px 0 #1d4ed8; margin-top: 10px; width: 100%; padding: 8px; font-size: 12px; }
 
     /* Game Modes */
     .modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 15px 0 10px; }
-    .mode-item { background: white; border-radius: 12px; padding: 10px 4px; text-align: center; color: #64748b; font-size: 11px; font-weight: 600; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
-    .mode-item.active { background: #2563eb; color: white; }
+    .mode-item { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 10px 4px; text-align: center; color: #94a3b8; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid transparent; }
+    .mode-item.active { background: #2563eb; color: white; border-color: #60a5fa; box-shadow: 0 0 10px rgba(37, 99, 235, 0.5); }
 
     /* Timer Ticket Card */
-    .ticket-card { background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-radius: 16px; padding: 12px 16px; color: white; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
-    .ticket-left { font-size: 12px; opacity: 0.9; }
-    .time-digits { background: white; color: #1e293b; font-size: 18px; font-weight: 800; padding: 4px 8px; border-radius: 6px; letter-spacing: 2px; }
+    .ticket-card { background: linear-gradient(135deg, #1e1b4b, #312e81); border-radius: 16px; padding: 14px 18px; color: white; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #4338ca; }
+    .time-digits { background: #020617; color: #ef4444; font-size: 20px; font-weight: 900; padding: 6px 12px; border-radius: 8px; border: 1px solid #dc2626; font-family: monospace; }
 
-    /* Betting Controls */
-    .color-section { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-    .btn-color { padding: 12px; border-radius: 10px; border: none; color: white; font-weight: bold; font-size: 15px; cursor: pointer; }
-    .bg-green { background: var(--green); }
-    .bg-violet { background: var(--violet); }
-    .bg-red { background: var(--red); }
+    /* 3D Betting Controls */
+    .color-section { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+    .btn-color-green { background: var(--green-3d); box-shadow: 0 5px 0 #047857; }
+    .btn-color-violet { background: var(--violet-3d); box-shadow: 0 5px 0 #6b21a8; }
+    .btn-color-red { background: var(--red-3d); box-shadow: 0 5px 0 #b91c1c; }
 
-    .grid-balls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; background: white; padding: 12px; border-radius: 16px; margin-bottom: 12px; }
-    .ball-btn { aspect-ratio: 1; border-radius: 50%; border: none; font-size: 18px; font-weight: bold; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
-    .ball-0 { background: linear-gradient(135deg, var(--violet) 50%, var(--red) 50%); }
-    .ball-5 { background: linear-gradient(135deg, var(--violet) 50%, var(--green) 50%); }
+    /* 3D Ball Grid */
+    .grid-balls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; background: var(--card-bg); padding: 16px; border-radius: 20px; border: 1px solid var(--card-border); margin-bottom: 15px; }
+    .ball-3d { aspect-ratio: 1; border-radius: 50%; border: none; font-size: 20px; font-weight: 900; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; transition: all 0.1s ease; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+    .ball-3d:active { transform: translateY(4px); box-shadow: none !important; }
+    
+    .ball-0 { background: radial-gradient(circle at 35% 35%, #c084fc, #7e22ce); box-shadow: 0 6px 0 #581c87; }
+    .ball-5 { background: radial-gradient(circle at 35% 35%, #34d399, #047857); box-shadow: 0 6px 0 #064e3b; }
+    .ball-green { background: radial-gradient(circle at 35% 35%, #34d399, #059669); box-shadow: 0 6px 0 #047857; }
+    .ball-red { background: radial-gradient(circle at 35% 35%, #f87171, #dc2626); box-shadow: 0 6px 0 #991b1b; }
 
-    .size-section { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-    .btn-size { padding: 14px; border-radius: 25px; border: none; color: white; font-weight: bold; font-size: 16px; cursor: pointer; }
-    .btn-big { background: var(--orange); }
-    .btn-small { background: var(--primary-blue); }
+    .size-section { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .btn-big { background: var(--orange-3d); box-shadow: 0 5px 0 #c2410c; }
+    .btn-small { background: var(--blue-3d); box-shadow: 0 5px 0 #1d4ed8; }
 
     /* History Section */
-    .history-card { background: white; border-radius: 16px; padding: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
-    .tab-header { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; gap: 5px; margin-bottom: 10px; }
-    .tab-btn { padding: 8px; border-radius: 8px; border: none; background: #f1f5f9; color: #64748b; font-weight: 600; font-size: 12px; }
+    .history-card { background: var(--card-bg); border-radius: 20px; padding: 14px; border: 1px solid var(--card-border); }
+    .tab-header { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+    .tab-btn { padding: 10px; border-radius: 10px; border: none; background: rgba(255,255,255,0.05); color: #94a3b8; font-weight: bold; font-size: 12px; cursor: pointer; }
     .tab-btn.active { background: #2563eb; color: white; }
 
     table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; }
-    th { color: #64748b; padding: 8px; font-weight: 600; border-bottom: 1px solid #f1f5f9; }
-    td { padding: 10px 4px; border-bottom: 1px solid #f8fafc; color: #334155; }
-    .res-ball { display: inline-block; width: 20px; height: 20px; line-height: 20px; border-radius: 50%; color: white; font-weight: bold; font-size: 11px; }
+    th { color: #64748b; padding: 10px 4px; border-bottom: 1px solid var(--card-border); }
+    td { padding: 10px 4px; border-bottom: 1px solid rgba(255,255,255,0.03); color: #cbd5e1; }
+    .res-ball { display: inline-block; width: 22px; height: 22px; line-height: 22px; border-radius: 50%; color: white; font-weight: bold; font-size: 11px; }
 
-    /* Bottom Bet Drawer / Modal */
-    .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; justify-content: flex-end; flex-direction: column; z-index: 1000; }
-    .drawer-content { background: white; border-top-left-radius: 20px; border-top-right-radius: 20px; overflow: hidden; animation: slideUp 0.25s ease-out; }
-    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
-    .drawer-header { background: var(--orange); color: white; text-align: center; padding: 12px; font-weight: bold; font-size: 16px; }
-    .drawer-select { background: white; margin: -10px 20px 10px; padding: 6px; border-radius: 8px; text-align: center; color: #1e293b; font-weight: bold; font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    /* Modals System (Deposit, Withdraw, Bet Drawer) */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: flex-end; z-index: 1000; backdrop-filter: blur(5px); }
+    .modal-content { background: #1e293b; border-top-left-radius: 24px; border-top-right-radius: 24px; width: 100%; max-width: 480px; padding: 20px; border-top: 1px solid var(--card-border); color: white; max-height: 85vh; overflow-y: auto; }
     
-    .drawer-body { padding: 15px 20px; }
-    .row-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; color: #475569; font-weight: 600; }
+    .modal-title { font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 15px; color: #f1c40f; }
+    .kpay-info { background: #0f172a; border: 1px dashed #10b981; border-radius: 12px; padding: 12px; text-align: center; margin-bottom: 15px; }
+    .kpay-num { font-size: 20px; font-weight: bold; color: #10b981; margin: 4px 0; }
     
-    .chips { display: flex; gap: 8px; }
-    .chip { flex: 1; padding: 6px; border-radius: 6px; border: 1px solid #e2e8f0; background: #f8fafc; text-align: center; font-size: 13px; font-weight: 600; cursor: pointer; }
-    .chip.active { background: var(--orange); color: white; border-color: var(--orange); }
+    .form-input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; margin-bottom: 12px; font-size: 14px; }
+    .btn-submit { width: 100%; padding: 14px; background: var(--green-3d); border: none; border-radius: 12px; color: white; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 4px 0 #047857; margin-top: 10px; }
+    .btn-close { width: 100%; padding: 12px; background: #475569; border: none; border-radius: 12px; color: white; font-weight: bold; margin-top: 8px; cursor: pointer; }
 
-    .qty-picker { display: flex; align-items: center; gap: 5px; }
-    .btn-qty { width: 32px; height: 32px; border-radius: 6px; border: none; background: var(--orange); color: white; font-size: 18px; font-weight: bold; cursor: pointer; }
-    .qty-val { width: 60px; text-align: center; padding: 6px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; font-weight: bold; }
+    /* Chips */
+    .chips { display: flex; gap: 8px; margin: 10px 0; }
+    .chip { flex: 1; padding: 8px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; text-align: center; font-size: 12px; cursor: pointer; }
+    .chip.active { background: var(--orange-3d); border-color: #f97316; }
 
-    .drawer-footer { display: flex; border-top: 1px solid #f1f5f9; }
-    .btn-cancel { flex: 1; padding: 14px; border: none; background: #f1f5f9; color: #64748b; font-weight: bold; font-size: 15px; cursor: pointer; }
-    .btn-confirm { flex: 2; padding: 14px; border: none; background: var(--orange); color: white; font-weight: bold; font-size: 15px; cursor: pointer; }
+    .badge-win { background: #10b981; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+    .badge-lose { background: #ef4444; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+    .btn-delete-hist { background: #ef4444; border: none; padding: 6px 12px; border-radius: 6px; color: white; font-size: 11px; margin-top: 10px; cursor: pointer; }
   </style>
 </head>
 <body>
 
+<!-- Login Gate Modal -->
+<div id="authOverlay">
+  <div class="auth-card">
+    <h2 style="color:#f1c40f; margin-bottom: 15px;">Lucky Lottery Login</h2>
+    <input type="text" id="loginUsername" class="auth-input" placeholder="ဖုန်းနံပါတ် သို့ အကောင့်အမည်">
+    <input type="password" class="auth-input" placeholder="စကားဝှက်">
+    <button class="auth-btn" onclick="handleLogin()">လော့ဂ်အင်ဝင်မည်</button>
+  </div>
+</div>
+
 <div class="app">
+  <!-- Header -->
   <div class="header">
-    <span>‹</span>
-    <span>CKLOTTERY</span>
-    <span>🎧</span>
+    <div class="brand-title">🎰 Lucky Lottery</div>
+    <div id="userDisplay" style="font-size: 13px; color: #94a3b8;">Guest</div>
   </div>
 
   <!-- Wallet Card -->
   <div class="wallet-card">
-    <div class="wallet-title">Wallet balance 🔄</div>
+    <div style="font-size: 13px; color: #94a3b8;">Wallet balance 🔄</div>
     <div class="balance-val" id="balanceDisplay">K0.00</div>
     <div class="wallet-btns">
-      <button class="btn-withdraw">Withdraw</button>
-      <button class="btn-deposit">Deposit</button>
+      <button class="btn-3d btn-withdraw" onclick="openWithdrawModal()">Withdraw</button>
+      <button class="btn-3d btn-deposit" onclick="openDepositModal()">Deposit</button>
     </div>
+    <button class="btn-3d btn-history-log" onclick="openTxLogModal()">📜 ငွေသွင်း/ငွေထုတ် မှတ်တမ်းများကြည့်မည်</button>
   </div>
 
-  <!-- Game Modes -->
+  <!-- Modes -->
   <div class="modes">
     <div class="mode-item active">Win Go 30s</div>
     <div class="mode-item">Win Go 1Min</div>
@@ -121,124 +146,181 @@
 
   <!-- Timer Card -->
   <div class="ticket-card">
-    <div class="ticket-left">
-      <div>Win Go 30s</div>
-      <small id="periodDisplay">P: 2026080300051925</small>
+    <div>
+      <div style="font-size: 14px; font-weight: bold;">Win Go 30s</div>
+      <small id="periodDisplay" style="color:#94a3b8;">P: 20260804001</small>
     </div>
     <div>
-      <div style="font-size: 10px; text-align: right; margin-bottom: 2px;">Time remaining</div>
+      <div style="font-size: 10px; text-align: right; color:#94a3b8; margin-bottom: 2px;">Time remaining</div>
       <div class="time-digits" id="timerDisplay">00:30</div>
     </div>
   </div>
 
-  <!-- Color Buttons -->
+  <!-- 3D Color Buttons -->
   <div class="color-section">
-    <button class="btn-color bg-green" onclick="openBetModal('color', 'Green', 'bg-green')">Green</button>
-    <button class="btn-color bg-violet" onclick="openBetModal('color', 'Violet', 'bg-violet')">Violet</button>
-    <button class="btn-color bg-red" onclick="openBetModal('color', 'Red', 'bg-red')">Red</button>
+    <button class="btn-3d btn-color-green" onclick="openBetModal('color', 'Green')">Green</button>
+    <button class="btn-3d btn-color-violet" onclick="openBetModal('color', 'Violet')">Violet</button>
+    <button class="btn-3d btn-color-red" onclick="openBetModal('color', 'Red')">Red</button>
   </div>
 
-  <!-- Number Balls Grid -->
+  <!-- 3D Number Balls Grid -->
   <div class="grid-balls">
-    <button class="ball-btn ball-0" onclick="openBetModal('number', 0, 'ball-0')">0</button>
-    <button class="ball-btn bg-green" onclick="openBetModal('number', 1, 'bg-green')">1</button>
-    <button class="ball-btn bg-red" onclick="openBetModal('number', 2, 'bg-red')">2</button>
-    <button class="ball-btn bg-green" onclick="openBetModal('number', 3, 'bg-green')">3</button>
-    <button class="ball-btn bg-red" onclick="openBetModal('number', 4, 'bg-red')">4</button>
-    <button class="ball-btn ball-5" onclick="openBetModal('number', 5, 'ball-5')">5</button>
-    <button class="ball-btn bg-red" onclick="openBetModal('number', 6, 'bg-red')">6</button>
-    <button class="ball-btn bg-green" onclick="openBetModal('number', 7, 'bg-green')">7</button>
-    <button class="ball-btn bg-red" onclick="openBetModal('number', 8, 'bg-red')">8</button>
-    <button class="ball-btn bg-green" onclick="openBetModal('number', 9, 'bg-green')">9</button>
+    <button class="ball-3d ball-0" onclick="openBetModal('number', 0)">0</button>
+    <button class="ball-3d ball-green" onclick="openBetModal('number', 1)">1</button>
+    <button class="ball-3d ball-red" onclick="openBetModal('number', 2)">2</button>
+    <button class="ball-3d ball-green" onclick="openBetModal('number', 3)">3</button>
+    <button class="ball-3d ball-red" onclick="openBetModal('number', 4)">4</button>
+    <button class="ball-3d ball-5" onclick="openBetModal('number', 5)">5</button>
+    <button class="ball-3d ball-red" onclick="openBetModal('number', 6)">6</button>
+    <button class="ball-3d ball-green" onclick="openBetModal('number', 7)">7</button>
+    <button class="ball-3d ball-red" onclick="openBetModal('number', 8)">8</button>
+    <button class="ball-3d ball-green" onclick="openBetModal('number', 9)">9</button>
   </div>
 
-  <!-- Size Buttons -->
+  <!-- 3D Size Buttons -->
   <div class="size-section">
-    <button class="btn-size btn-big" onclick="openBetModal('size', 'Big', 'btn-big')">Big</button>
-    <button class="btn-size btn-small" onclick="openBetModal('size', 'Small', 'btn-small')">Small</button>
+    <button class="btn-3d btn-big" onclick="openBetModal('size', 'Big')">Big</button>
+    <button class="btn-3d btn-small" onclick="openBetModal('size', 'Small')">Small</button>
   </div>
 
-  <!-- History Records -->
+  <!-- History Section -->
   <div class="history-card">
     <div class="tab-header">
-      <button class="tab-btn active">Game history</button>
-      <button class="tab-btn">Chart</button>
-      <button class="tab-btn">My history</button>
+      <button class="tab-btn active" id="tabGame" onclick="switchTab('game')">Game history</button>
+      <button class="tab-btn" id="tabMy" onclick="switchTab('my')">My history</button>
     </div>
-    <table>
+
+    <!-- Game History Table -->
+    <table id="gameHistoryTable">
       <thead>
         <tr>
           <th>Period</th>
           <th>Number</th>
-          <th>Big Small</th>
+          <th>Big/Small</th>
           <th>Color</th>
         </tr>
       </thead>
-      <tbody id="historyTable">
-        <tr><td colspan="4">Loading records...</td></tr>
-      </tbody>
+      <tbody id="gameHistoryBody"></tbody>
     </table>
+
+    <!-- User My History Table -->
+    <div id="myHistoryArea" style="display: none; text-align: center;">
+      <table>
+        <thead>
+          <tr>
+            <th>Period</th>
+            <th>Bet</th>
+            <th>Amount</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody id="myHistoryBody"></tbody>
+      </table>
+      <button class="btn-delete-hist" onclick="clearMyHistory()">🗑️ Clear History (မှတ်တမ်းဖျက်မည်)</button>
+    </div>
   </div>
 </div>
 
-<!-- Bottom Bet Modal / Drawer -->
-<div class="drawer-overlay" id="betDrawer">
-  <div class="drawer-content">
-    <div class="drawer-header" id="modalHeader">Win Go 30s</div>
-    <div class="drawer-select">Select <span id="selectedItem">Big</span></div>
+<!-- Deposit Modal -->
+<div class="modal-overlay" id="depositModal">
+  <div class="modal-content">
+    <div class="modal-title">💵 ငွေသွင်းရန် (Deposit)</div>
+    <div class="kpay-info">
+      <div>KBZPay Account</div>
+      <div class="kpay-num">09663804708</div>
+      <small style="color: #94a3b8;">အမည် - Lucky Lottery Agent</small>
+    </div>
+    <input type="number" id="depAmount" class="form-input" placeholder="သွင်းမည့် ပမာဏ (ကျပ်)">
+    <input type="text" id="depTxId" class="form-input" placeholder="KPay လုပ်ငန်းစဉ်အမှတ် (Last 6 digits Trans ID)">
+    <label style="font-size:12px; color:#94a3b8;">ပြေစာ ပုံပြပါ/တင်ပါ (Image/Screenshot):</label>
+    <input type="file" id="depProof" class="form-input" accept="image/*">
+    <button class="btn-submit" onclick="submitDeposit()">Confirm သွင်းမည်</button>
+    <button class="btn-close" onclick="closeModals()">မလုပ်တော့ပါ</button>
+  </div>
+</div>
+
+<!-- Withdraw Modal -->
+<div class="modal-overlay" id="withdrawModal">
+  <div class="modal-content">
+    <div class="modal-title">🏧 ငွေထုတ်ရန် (Withdrawal)</div>
+    <input type="text" id="wdPhone" class="form-input" placeholder="ထုတ်ယူမည့် ဖုန်းနံပါတ် / KPay နံပါတ်">
+    <input type="number" id="wdAmount" class="form-input" placeholder="ထုတ်ယူမည့် ပမာဏ (ကျပ်)">
+    <button class="btn-submit" onclick="submitWithdraw()">Confirm ထုတ်ယူမည်</button>
+    <button class="btn-close" onclick="closeModals()">မလုပ်တော့ပါ</button>
+  </div>
+</div>
+
+<!-- Transaction History Logs Modal -->
+<div class="modal-overlay" id="txLogModal">
+  <div class="modal-content">
+    <div class="modal-title">📜 ငွေသွင်း/ငွေထုတ် မှတ်တမ်းများ</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Amount</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="txLogBody"></tbody>
+    </table>
+    <button class="btn-close" onclick="closeModals()">ပိတ်မည်</button>
+  </div>
+</div>
+
+<!-- Bet Modal Drawer -->
+<div class="modal-overlay" id="betDrawer">
+  <div class="modal-content">
+    <div class="modal-title">Win Go 30s - Select <span id="selectedItem" style="color:#f97316;">Big</span></div>
     
-    <div class="drawer-body">
-      <!-- Balance base chips -->
-      <div class="row-label">
-        <span>Balance</span>
-        <div class="chips">
-          <div class="chip" onclick="setBaseAmt(10)">10</div>
-          <div class="chip" onclick="setBaseAmt(100)">100</div>
-          <div class="chip active" id="chip1000" onclick="setBaseAmt(1000)">1000</div>
-          <div class="chip" onclick="setBaseAmt(10000)">10000</div>
-        </div>
-      </div>
-
-      <!-- Quantity picker -->
-      <div class="row-label">
-        <span>Quantity</span>
-        <div class="qty-picker">
-          <button class="btn-qty" onclick="changeQty(-1)">-</button>
-          <input class="qty-val" type="text" id="qtyInput" value="1" readonly>
-          <button class="btn-qty" onclick="changeQty(1)">+</button>
-        </div>
-      </div>
-
-      <!-- Multiplier Chips -->
-      <div class="chips" style="margin-top: 10px;">
-        <div class="chip active" onclick="setMultiplier(1)">X1</div>
-        <div class="chip" onclick="setMultiplier(5)">X5</div>
-        <div class="chip" onclick="setMultiplier(10)">X10</div>
-        <div class="chip" onclick="setMultiplier(20)">X20</div>
-        <div class="chip" onclick="setMultiplier(50)">X50</div>
-        <div class="chip" onclick="setMultiplier(100)">X100</div>
-      </div>
+    <div style="margin-bottom: 10px; font-size:13px;">Balance Base:</div>
+    <div class="chips">
+      <div class="chip" onclick="setBaseAmt(10)">10</div>
+      <div class="chip" onclick="setBaseAmt(100)">100</div>
+      <div class="chip active" id="chip1000" onclick="setBaseAmt(1000)">1000</div>
+      <div class="chip" onclick="setBaseAmt(10000)">10000</div>
     </div>
 
-    <div class="drawer-footer">
-      <button class="btn-cancel" onclick="closeDrawer()">Cancel</button>
-      <button class="btn-confirm" onclick="submitBet()">Total amount K<span id="totalAmount">1,000.00</span></button>
+    <div style="margin: 15px 0 10px; font-size:13px;">Multiplier:</div>
+    <div class="chips">
+      <div class="chip active" onclick="setMultiplier(1)">X1</div>
+      <div class="chip" onclick="setMultiplier(5)">X5</div>
+      <div class="chip" onclick="setMultiplier(10)">X10</div>
+      <div class="chip" onclick="setMultiplier(50)">X50</div>
     </div>
+
+    <button class="btn-submit" onclick="submitBet()">Confirm - Total K<span id="totalAmount">1,000</span></button>
+    <button class="btn-close" onclick="closeModals()">မလုပ်တော့ပါ</button>
   </div>
 </div>
 
 <script>
   const socket = io();
-  let currentUser = { username: 'demoUser', balance: 1299.00 }; // Auto Session / Persistent
+  let currentUser = null;
   let activeBet = { type: '', value: '', baseAmt: 1000, qty: 1 };
-  let historyList = [];
+  let gameHistory = [];
+  let myBets = [];
+  let txLogs = [];
 
-  socket.on('connect', () => { socket.emit('get_init_data'); });
+  function handleLogin() {
+    const val = document.getElementById('loginUsername').value.trim();
+    if(!val) return alert('ကျေးဇူးပြု၍ ဖုန်းနံပါတ် သို့ အကောင့်အမည် ရိုက်ထည့်ပါ');
+    
+    currentUser = { username: val, balance: 0.00 };
+    document.getElementById('userDisplay').innerText = val;
+    document.getElementById('authOverlay').style.display = 'none';
+    
+    socket.emit('get_init_data', { username: currentUser.username });
+  }
 
   socket.on('init_data', (data) => {
-    historyList = data.history || [];
-    renderHistory();
+    gameHistory = data.history || [];
+    renderGameHistory();
     document.getElementById('periodDisplay').innerText = `P: ${data.period}`;
+    if(data.balance !== undefined) {
+      currentUser.balance = data.balance;
+      updateBalanceUI();
+    }
   });
 
   socket.on('timer_update', (data) => {
@@ -248,83 +330,162 @@
   });
 
   socket.on('round_ended', (data) => {
-    historyList = data.history;
-    renderHistory();
+    gameHistory = data.history;
+    renderGameHistory();
   });
 
-  function renderHistory() {
-    const tbody = document.getElementById('historyTable');
-    if(!historyList.length) { tbody.innerHTML = '<tr><td colspan="4">No history found</td></tr>'; return; }
-    
-    tbody.innerHTML = historyList.map(h => {
+  function updateBalanceUI() {
+    document.getElementById('balanceDisplay').innerText = `K${currentUser.balance.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+  }
+
+  /* History Tabs */
+  function switchTab(tab) {
+    if(tab === 'game') {
+      document.getElementById('tabGame').classList.add('active');
+      document.getElementById('tabMy').classList.remove('active');
+      document.getElementById('gameHistoryTable').style.display = 'table';
+      document.getElementById('myHistoryArea').style.display = 'none';
+    } else {
+      document.getElementById('tabMy').classList.add('active');
+      document.getElementById('tabGame').classList.remove('active');
+      document.getElementById('gameHistoryTable').style.display = 'none';
+      document.getElementById('myHistoryArea').style.display = 'block';
+      renderMyHistory();
+    }
+  }
+
+  function renderGameHistory() {
+    const tbody = document.getElementById('gameHistoryBody');
+    tbody.innerHTML = gameHistory.map(h => {
       let bg = h.color === 'green' ? '#10b981' : (h.color === 'red' ? '#ef4444' : '#a855f7');
       return `
         <tr>
           <td>${h.period}</td>
           <td><span class="res-ball" style="background:${bg}">${h.number}</span></td>
-          <td style="font-weight:600; color:${h.size === 'BIG'?'#f97316':'#2563eb'}">${h.size}</td>
+          <td style="font-weight:bold; color:${h.size === 'BIG'?'#f97316':'#3b82f6'}">${h.size}</td>
           <td><span style="color:${bg}">●</span></td>
         </tr>
       `;
     }).join('');
   }
 
-  // --- Betting Drawer Handler ---
-  function openBetModal(type, value, bgClass) {
-    activeBet.type = type;
-    activeBet.value = value;
-    activeBet.baseAmt = 1000;
-    activeBet.qty = 1;
-    
-    document.getElementById('selectedItem').innerText = value;
-    document.getElementById('betDrawer').style.display = 'flex';
-    updateTotalCalc();
+  function renderMyHistory() {
+    const tbody = document.getElementById('myHistoryBody');
+    if(!myBets.length) { tbody.innerHTML = '<tr><td colspan="4">ကစားထားသော မှတ်တမ်း မရှိပါ</td></tr>'; return; }
+    tbody.innerHTML = myBets.map(b => `
+      <tr>
+        <td>${b.period}</td>
+        <td>${b.value}</td>
+        <td>K${b.amount}</td>
+        <td><span class="${b.win ? 'badge-win':'badge-lose'}">${b.win ? 'WIN' : 'LOSE'}</span></td>
+      </tr>
+    `).join('');
   }
 
-  function closeDrawer() { document.getElementById('betDrawer').style.display = 'none'; }
+  function clearMyHistory() {
+    if(confirm('မှတ်တမ်းများကို ဖျက်ရန် သေချာပါသလား?')) {
+      myBets = [];
+      renderMyHistory();
+    }
+  }
+
+  /* Modal Handlers */
+  function closeModals() {
+    document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+  }
+
+  function openDepositModal() { document.getElementById('depositModal').style.display = 'flex'; }
+  function openWithdrawModal() { document.getElementById('withdrawModal').style.display = 'flex'; }
+  function openTxLogModal() { renderTxLogs(); document.getElementById('txLogModal').style.display = 'flex'; }
+
+  function openBetModal(type, val) {
+    if(!currentUser) return alert('လော့ဂ်အင် အရင်ဝင်ပါ');
+    activeBet.type = type;
+    activeBet.value = val;
+    document.getElementById('selectedItem').innerText = val;
+    document.getElementById('betDrawer').style.display = 'flex';
+  }
 
   function setBaseAmt(amt) {
     activeBet.baseAmt = amt;
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-    event.target.classList.add('active');
-    updateTotalCalc();
+    updateBetTotal();
   }
 
   function setMultiplier(mult) {
     activeBet.qty = mult;
-    document.getElementById('qtyInput').value = mult;
-    updateTotalCalc();
+    updateBetTotal();
   }
 
-  function changeQty(delta) {
-    activeBet.qty = Math.max(1, activeBet.qty + delta);
-    document.getElementById('qtyInput').value = activeBet.qty;
-    updateTotalCalc();
+  function updateBetTotal() {
+    const total = activeBet.baseAmt * activeBet.qty;
+    document.getElementById('totalAmount').innerText = total.toLocaleString();
   }
 
-  function updateTotalCalc() {
-    let total = activeBet.baseAmt * activeBet.qty;
-    document.getElementById('totalAmount').innerText = total.toLocaleString('en-US', {minimumFractionDigits: 2});
-  }
-
+  /* Submissions */
   function submitBet() {
-    let totalAmt = activeBet.baseAmt * activeBet.qty;
+    const total = activeBet.baseAmt * activeBet.qty;
+    if(currentUser.balance < total) {
+      alert('လက်ကျန်ငွေ မလုံလောက်ပါ! ကျေးဇူးပြု၍ ငွေထပ်သွင်းပါ။');
+      return;
+    }
+
+    currentUser.balance -= total;
+    updateBalanceUI();
+
+    const currentPeriod = document.getElementById('periodDisplay').innerText.replace('P: ', '');
+    myBets.unshift({
+      period: currentPeriod,
+      value: activeBet.value,
+      amount: total,
+      win: Math.random() < 0.5 // Mock result for frontend preview
+    });
+
     socket.emit('place_bet', {
       username: currentUser.username,
-      type: activeBet.type,
-      value: typeof activeBet.value === 'string' ? activeBet.value.toLowerCase() : activeBet.value,
-      amount: totalAmt
+      bet: activeBet,
+      totalAmount: total
     });
-    closeDrawer();
+
+    closeModals();
+    alert(`ထိုးကြေး K${total.toLocaleString()} ဖြင့် ${activeBet.value} အား အောင်မြင်စွာ ထိုးပြီးပါပြီ!`);
   }
 
-  socket.on('balance_updated', (newBal) => {
-    currentUser.balance = newBal;
-    document.getElementById('balanceDisplay').innerText = `K${newBal.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-    alert("လောင်းကြေး တင်ပြီးပါပြီ!");
-  });
+  function submitDeposit() {
+    const amt = document.getElementById('depAmount').value;
+    const txId = document.getElementById('depTxId').value;
+    if(!amt || !txId) return alert('အချက်အလက်များကို ပြည့်စုံစွာ ဖြည့်စွက်ပါ');
 
-  socket.on('error_msg', (msg) => alert(msg));
+    txLogs.unshift({ type: 'Deposit', amount: `K${amt}`, status: 'Pending ⏳' });
+    closeModals();
+    alert('ငွေသွင်းလွှာ တင်ပြီးပါပြီ။ အေးဂျင့်မှ စစ်ဆေးပြီးပါက ဘေလ်ဝင်လာပါမည်။');
+  }
+
+  function submitWithdraw() {
+    const phone = document.getElementById('wdPhone').value;
+    const amt = parseFloat(document.getElementById('wdAmount').value);
+
+    if(!phone || !amt) return alert('အချက်အလက်များကို ပြည့်စုံစွာ ဖြည့်စွက်ပါ');
+    if(amt > currentUser.balance) return alert('ထုတ်ယူလိုသော ပမာဏသည် လက်ကျန်ငွေထက် များနေပါသည်။');
+
+    currentUser.balance -= amt;
+    updateBalanceUI();
+
+    txLogs.unshift({ type: 'Withdraw', amount: `K${amt}`, status: 'Pending ⏳' });
+    closeModals();
+    alert('ငွေထုတ်လွှာ တင်ပြီးပါပြီ။ မကြာမီ စစ်ဆေး၍ လွှဲပေးပါမည်။');
+  }
+
+  function renderTxLogs() {
+    const tbody = document.getElementById('txLogBody');
+    if(!txLogs.length) { tbody.innerHTML = '<tr><td colspan="3">မှတ်တမ်း မရှိပါ</td></tr>'; return; }
+    tbody.innerHTML = txLogs.map(t => `
+      <tr>
+        <td>${t.type}</td>
+        <td>${t.amount}</td>
+        <td><small style="color:${t.status.includes('Pending')?'#f59e0b':'#10b981'}">${t.status}</small></td>
+      </tr>
+    `).join('');
+  }
 </script>
 </body>
 </html>
