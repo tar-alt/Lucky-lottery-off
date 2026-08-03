@@ -1,7 +1,17 @@
 {
-  "name":"cklottery-render-demo",
-  "version":"1.0.0",
-  "private":true,
-  "scripts":{"start":"node server.js"},
-  "dependencies":{"express":"^4.21.2","express-session":"^1.18.1","better-sqlite3":"^11.8.1"}
+  "name": "lucky-lottery",
+  "version": "1.0.0",
+  "description": "Lucky Lottery - 1 Min Win Go Virtual Unit Game",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "socket.io": "^4.6.1",
+    "sqlite3": "^5.1.6"
+  }
 }
+
