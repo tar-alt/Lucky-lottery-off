@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BigWin Game - လော့ဂ်အင်</title>
+  <style>
+    * { box-sizing: border-box; font-family: sans-serif; margin: 0; padding: 0; }
+    body { background: #f8fafc; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 480px; min-height: 100vh; background: white; }
+    
+    .top-bar { background: linear-gradient(135deg, #00c853, #00e676); padding: 25px 20px; color: white; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; }
+    .logo { font-size: 22px; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+    .desc { font-size: 13px; opacity: 0.9; line-height: 1.4; }
+
+    .tabs { display: flex; border-bottom: 2px solid #e2e8f0; margin-top: 15px; }
+    .tab { flex: 1; text-align: center; padding: 12px; font-weight: bold; color: #64748b; font-size: 15px; cursor: pointer; }
+    .tab.active { color: #00c853; border-bottom: 3px solid #00c853; }
+
+    .form-group { padding: 20px; }
+    .input-box { display: flex; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 25px; padding: 12px 16px; margin-bottom: 15px; }
+    .input-box input { border: none; background: transparent; outline: none; width: 100%; margin-left: 10px; font-size: 14px; }
+
+    .btn-login { width: 100%; padding: 14px; border-radius: 25px; border: none; background: #cbd5e1; color: #64748b; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 10px; }
+    .btn-register { width: 100%; padding: 14px; border-radius: 25px; border: 1px solid #00c853; background: white; color: #00c853; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 10px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="top-bar">
+    <div class="logo">
+      <span>‹</span>
+      <span>777 BIGWIN GAME</span>
+      <span>🇲🇲 MD</span>
+    </div>
+    <h2>လော့ဂ်အင်</h2>
+    <p class="desc">ကျေးဇူးပြု၍ သင့်၏ ဖုန်းနံပါတ် သို့မဟုတ် အီးမေးလ်ဖြင့် လော့ဂ်အင်ဝင်ပါ။</p>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active">📱 ဖုန်းနံပါတ်</div>
+    <div class="tab">✉️ အီးမေးလ်ဖြင့်လော့ဂ်အင်ဝင်မည်</div>
+  </div>
+
+  <div class="form-group">
+    <div class="input-box">
+      <span>📱 +95</span>
+      <input type="text" placeholder="ဖုန်းနံပါတ်ထည့်ပါ">
+    </div>
+    <div class="input-box">
+      <span>🔒</span>
+      <input type="password" placeholder="စကားဝှက်">
+    </div>
+
+    <button class="btn-login" onclick="location.href='/'">လော့ဂ်အင်</button>
+    <button class="btn-register">မှတ်ပုံတင်</button>
+  </div>
+</div>
+</body>
+</html>
+
+
