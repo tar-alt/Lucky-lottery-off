@@ -16,6 +16,87 @@ let users = {}; // User စာရင်းနှင့် Balance သိမ်�
 // Socket.io Connection
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
+    // =========================
+  // LOGIN
+  // =========================
+  socket.on('user_login', (data) => {
+    const { phone, pass } = data || {};
+
+    if (!phone || !pass) {
+      return socket.emit('auth_response', {
+        success: false,
+        message: 'အကောင့်အမည်နှင့် စကားဝှက် ဖြည့်ပါ'
+      });
+    }
+
+    const user = users[phone];
+
+    if (!user) {
+      return socket.emit('auth_response', {
+        success: false,
+        message: 'အကောင့်မတွေ့ပါ။ Register အရင်လုပ်ပါ။'
+      });
+    }
+
+    if (user.pass !== pass) {
+      return socket.emit('auth_response', {
+        success: false,
+        message: 'စကားဝှက် မှားနေပါတယ်'
+      });
+    }
+
+    socket.emit('auth_response', {
+      success: true,
+      message: 'Login အောင်မြင်ပါတယ်',
+      user: {
+        phone: user.phone,
+        pass: user.pass,
+        balance: user.balance || 0
+      }
+    });
+  });
+
+
+  // =========================
+  // REGISTER
+  // =========================
+  socket.on('user_register', (data) => {
+    const { phone, pass } = data || {};
+
+    if (!phone || !pass) {
+      return socket.emit('auth_response', {
+        success: false,
+        message: 'အကောင့်အမည်နှင့် စကားဝှက် ဖြည့်ပါ'
+      });
+    }
+
+    if (users[phone]) {
+      return socket.emit('auth_response', {
+        success: false,
+        message: 'ဒီအကောင့် ရှိပြီးသားပါ။ Login ဝင်ပါ။'
+      });
+    }
+
+    users[phone] = {
+      phone: phone,
+      pass: pass,
+      balance: 0
+    };
+
+    console.log(`[REGISTER] New user: ${phone}`);
+
+    socket.emit('auth_response', {
+      success: true,
+      message: 'Register အောင်မြင်ပါတယ်',
+      user: {
+        phone: phone,
+        pass: pass,
+        balance: 0
+      }
+    });
+
+    sendAdminStats();
+  });
 
   // Admin မှ ကျမည့်နံပါတ် သတ်မှတ်ချက် လက်ခံခြင်း
   socket.on('admin_set_target_result', (data) => {
