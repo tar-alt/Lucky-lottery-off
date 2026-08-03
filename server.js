@@ -1,0 +1,23 @@
+const express=require("express"),session=require("express-session"),Database=require("better-sqlite3"),crypto=require("crypto"),path=require("path");
+const app=express(),db=new Database("data.db");
+app.use(express.json());app.use(express.static(path.join(__dirname,"public")));
+app.use(session({secret:process.env.SESSION_SECRET||"change-this",resave:false,saveUninitialized:false}));
+db.exec(`CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY AUTOINCREMENT,phone TEXT UNIQUE,password TEXT,role TEXT DEFAULT 'user',units INTEGER DEFAULT 0);
+CREATE TABLE IF NOT EXISTS bets(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER,period TEXT,choice TEXT,amount INTEGER,result INTEGER,status TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);`);
+const hash=x=>crypto.createHash("sha256").update(x).digest("hex");
+const ap=process.env.ADMIN_PHONE||"admin", aw=process.env.ADMIN_PASSWORD||"admin123";
+if(!db.prepare("SELECT id FROM users WHERE phone=?").get(ap))db.prepare("INSERT INTO users(phone,password,role) VALUES(?,?,?)").run(ap,hash(aw),"admin");
+const auth=(req,res,next)=>req.session.user?next():res.status(401).json({success:false,message:"Login ဝင်ပါ"});
+const adm=(req,res,next)=>req.session.user?.role==="admin"?next():res.status(403).json({success:false,message:"Admin only"});
+app.post("/api/register",(q,s)=>{let{phone,password}=q.body||{};if(!phone||!password)return s.json({success:false,message:"အချက်အလက်ဖြည့်ပါ"});try{let r=db.prepare("INSERT INTO users(phone,password) VALUES(?,?)").run(String(phone).trim(),hash(password));let u=db.prepare("SELECT id,phone,role,units FROM users WHERE id=?").get(r.lastInsertRowid);q.session.user=u;s.json({success:true,user:u})}catch(e){s.json({success:false,message:"အကောင့်ရှိပြီးသားပါ"})}});
+app.post("/api/login",(q,s)=>{let{phone,password}=q.body||{},u=db.prepare("SELECT id,phone,role,units FROM users WHERE phone=? AND password=?").get(String(phone||"").trim(),hash(password||""));if(!u)return s.json({success:false,message:"Login မမှန်ပါ"});q.session.user=u;s.json({success:true,user:u})});
+app.post("/api/logout",(q,s)=>q.session.destroy(()=>s.json({success:true})));
+app.get("/api/me",auth,(q,s)=>{let u=db.prepare("SELECT id,phone,role,units FROM users WHERE id=?").get(q.session.user.id);q.session.user=u;s.json({success:true,user:u})});
+app.get("/api/admin/users",adm,(q,s)=>s.json({success:true,users:db.prepare("SELECT id,phone,role,units FROM users ORDER BY id DESC").all()}));
+app.post("/api/admin/grant",adm,(q,s)=>{let id=+q.body.userId,a=+q.body.amount;if(!Number.isInteger(id)||!Number.isInteger(a)||a<1)return s.json({success:false,message:"ပမာဏမမှန်ပါ"});let r=db.prepare("UPDATE users SET units=units+? WHERE id=? AND role='user'").run(a,id);s.json({success:!!r.changes,message:r.changes?"":"User မတွေ့ပါ"})});
+app.post("/api/admin/set",adm,(q,s)=>{let id=+q.body.userId,a=+q.body.amount;if(!Number.isInteger(id)||!Number.isInteger(a)||a<0)return s.json({success:false,message:"ပမာဏမမှန်ပါ"});db.prepare("UPDATE users SET units=? WHERE id=? AND role='user'").run(a,id);s.json({success:true})});
+app.post("/api/bet",auth,(q,s)=>{let choice=String(q.body.choice||""),a=+q.body.amount,u=db.prepare("SELECT * FROM users WHERE id=?").get(q.session.user.id);if(!Number.isInteger(a)||a<1)return s.json({success:false,message:"Unit ပမာဏမမှန်ပါ"});if(u.units<a)return s.json({success:false,message:"Admin ထည့်ပေးထားတဲ့ Unit မလုံလောက်ပါ"});let n=Math.floor(Math.random()*10),win=Math.random()<.5,gain=win?a*2:0,period=Date.now().toString();db.prepare("UPDATE users SET units=units-?+? WHERE id=?").run(a,gain,u.id);db.prepare("INSERT INTO bets(user_id,period,choice,amount,result,status) VALUES(?,?,?,?,?,?)").run(u.id,period,choice,a,n,win?"WIN":"LOSE");let nu=db.prepare("SELECT id,phone,role,units FROM users WHERE id=?").get(u.id);q.session.user=nu;s.json({success:true,user:nu,result:{period,number:n,win,gain}})});
+app.get("/api/history",auth,(q,s)=>s.json({success:true,rows:db.prepare("SELECT period,choice,amount,result,status FROM bets WHERE user_id=? ORDER BY id DESC LIMIT 30").all(q.session.user.id)}));
+app.get("/admin",(q,s)=>q.session.user?.role==="admin"?s.sendFile(path.join(__dirname,"public","admin.html")):s.redirect("/"));
+app.listen(process.env.PORT||3000,"0.0.0.0");
+
