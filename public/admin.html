@@ -3,67 +3,134 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>⚙️ Admin Full Control Panel</title>
+  <title>⚙️ Admin Full Live Dashboard</title>
   <script src="/socket.io/socket.io.js"></script>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0f19; color: #f8fafc; margin: 0; padding: 15px; }
-    .card { background: #161e2e; padding: 18px; margin-bottom: 15px; border-radius: 12px; border: 1px solid #334155; }
-    input, button, select { padding: 10px; margin: 5px 0; border-radius: 6px; border: 1px solid #334155; background: #0b0f19; color: #fff; width: 100%; box-sizing: border-box; }
+    body { font-family: sans-serif; background: #0b0f19; color: #fff; margin: 0; padding: 15px; }
+    .card { background: #161e2e; padding: 15px; margin-bottom: 15px; border-radius: 10px; border: 1px solid #334155; }
+    h3 { margin-top: 0; color: #f59e0b; }
+    input, button, select { padding: 10px; margin: 5px 0; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #fff; width: 100%; box-sizing: border-box; }
     button { cursor: pointer; background: #f59e0b; color: #000; font-weight: bold; border: none; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
     th, td { border: 1px solid #334155; padding: 8px; text-align: center; }
-    .bet-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 10px; }
-    .bet-box { background: #0f172a; padding: 8px; border-radius: 6px; text-align: center; font-size: 12px; border: 1px solid #1e293b; }
+    th { background: #1e293b; color: #38bdf8; }
+    .timer-badge { font-size: 20px; font-weight: bold; color: #38bdf8; float: right; }
   </style>
 </head>
 <body>
 
-  <h2>⚙️ Lucky Lottery - Full Admin Control</h2>
-  <a href="/" style="color: #38bdf8; text-decoration: none; font-weight: bold;">← Back to Game Main Page</a>
+  <h2>⚙️ Admin Control Panel <span class="timer-badge" id="adminTimer">00:00</span></h2>
+  <a href="/" style="color: #38bdf8; font-weight: bold;">← Back to Main Game</a>
 
-  <!-- 1. Next Round Result Control -->
-  <div class="card" style="border-color: #ef4444;">
-    <h3 style="color: #ef4444; margin-top:0;">🎲 Control Next Round Outcome</h3>
-    <p style="font-size: 12px; color: #94a3b8; margin-top: 0;">နောက်တစ်ကြိမ် ထွက်မယ့် ဂဏန်းကို အပိုင်သတ်မှတ်ပါ။ (Auto ထားရင် Random ထွက်ပါမည်)</p>
+  <!-- 1. Outcome Control -->
+  <div class="card" style="border-color: #ef4444; margin-top: 15px;">
+    <h3 style="color: #ef4444;">🎲 Set Next Round Result</h3>
+    <p style="font-size: 12px; color: #94a3b8;">နောက်တစ်ကြိမ် ထွက်မယ့် ဂဏန်းကို ရွေးပါ (Auto ထားရင် Random ထွက်ပါမယ်)</p>
     <select id="targetOutcome">
-      <option value="auto">🎰 Auto Random (Normal Engine)</option>
-      <option value="0">Number 0</option>
-      <option value="1">Number 1</option>
-      <option value="2">Number 2</option>
-      <option value="3">Number 3</option>
-      <option value="4">Number 4</option>
-      <option value="5">Number 5</option>
-      <option value="6">Number 6</option>
-      <option value="လိုအပ်တဲ့ Features တွေအားလုံး (WinGo 1Min ပုံစံ Betting UI၊ Admin Manual Control၊ Real-time Syncing၊ Auto-Login persistent session၊ Pop-up result) ပါဝင်တဲ့ **Full-stack Node.js + Express + Socket.IO + MongoDB (သို့မဟုတ် SQLite)** Architecture နဲ့ Full Code Structure ကို အောက်မှာ ပြင်ဆင်ပေးထားပါတယ်။
+      <option value="">🎰 Auto Random</option>
+      <option value="0">Number 0 (Purple/Red)</option>
+      <option value="1">Number 1 (Green)</option>
+      <option value="2">Number 2 (Red)</option>
+      <option value="3">Number 3 (Green)</option>
+      <option value="4">Number 4 (Red)</option>
+      <option value="5">Number 5 (Purple/Green)</option>
+      <option value="6">Number 6 (Red)</option>
+      <option value="7">Number 7 (Green)</option>
+      <option value="8">Number 8 (Red)</option>
+      <option value="9">Number 9 (Green)</option>
+    </select>
+    <button onclick="setOutcome()" style="background: #ef4444; color: #fff;">Save Outcome</button>
+  </div>
 
----
+  <!-- 2. Live Current Round Bets Tracker -->
+  <div class="card">
+    <h3>📊 Live Bets (ခုပွဲမှာ User တွေ လောင်းထားသည်များ)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Type</th>
+          <th>Value</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody id="liveBetsTable">
+        <tr><td colspan="4">No bets placed yet in this round</td></tr>
+      </tbody>
+    </table>
+  </div>
 
-## 🛠 တည်ဆောက်ပုံ အနှစ်ချုပ် (Key Features)
+  <!-- 3. Balance Control -->
+  <div class="card">
+    <h3>💰 User Balance Deposit / Withdraw</h3>
+    <input type="text" id="targetUser" placeholder="Username (e.g. user1)">
+    <input type="number" id="transferAmt" placeholder="Amount (e.g. 5000 or -2000)">
+    <button onclick="updateBalance()">Update Balance</button>
+  </div>
 
-1. **Real-time Synchronization (Socket.io):** ကစားသူ အားလုံးမှာ တပြိုင်နက်တည်း Timer ပတ်နေမည်။ Admin က ရလဒ်ပြောင်းလိုက်တာနဲ့ ကစားသူအားလုံးဆီ အချိန်ကိုက် ရောက်ရှိမည်။
-2. **Admin Control:** နံပါတ် အပိုင်သတ်မှတ်ရန် Control Module ပါဝင်မည်။ သတ်မှတ်မထားပါက Random အလိုအလျောက် ထွက်မည်။ User Balance နှင့် Deposit/Withdraw များကို Direct Update လုပ်နိုင်မည်။
-3. **Auto Login / Persistent Session:** LocalStorage (သို့) JWT/Session token အသုံးပြု၍ မည်မျှပင် Browser ပိတ်/ဖွင့်လုပ်သည်ဖြစ်စေ Auto-Login ဖြစ်နေမည်။
-4. **WinGo Style Game UI:** ဓာတ်ပုံ ၃ ပါအတိုင်း ရောင်စုံ ခလုတ်များ၊ အကြီး/အသေး၊ ၀-၉ ဂဏန်းများ ပါဝင်သည့် Dark Modern Betting Dashboard။
+<script>
+  const socket = io();
 
----
+  socket.on('timer_update', (data) => {
+    let secs = data.timer < 10 ? '0' + data.timer : data.timer;
+    document.getElementById('adminTimer').innerText = `P:${data.period} | 00:${secs}`;
+  });
 
-## 💻 Full Code Structure
+  // Track live bets
+  let currentBetsList = [];
+  socket.on('admin_bet_update', (bet) => {
+    currentBetsList.push(bet);
+    renderLiveBets();
+  });
 
-### 1. `package.json`
-```json
-{
-  "name": "wingo-lottery-game",
-  "version": "1.0.0",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "socket.io": "^4.6.1",
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.0",
-    "cors": "^2.8.5"
+  socket.on('round_ended', () => {
+    currentBetsList = []; // clear on new round
+    renderLiveBets();
+  });
+
+  function renderLiveBets() {
+    const tbody = document.getElementById('liveBetsTable');
+    if (currentBetsList.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4">No bets placed yet in this round</td></tr>';
+      return;
+    }
+    tbody.innerHTML = currentBetsList.map(b => `
+      <tr>
+        <td><b>${b.username}</b></td>
+        <td>${b.type}</td>
+        <td><span style="color:#f59e0b">${b.value}</span></td>
+        <td>K${b.amount}</td>
+      </tr>
+    `).join('');
   }
-}
+
+  async function setOutcome() {
+    const number = document.getElementById('targetOutcome').value;
+    const res = await fetch('/api/admin/set-result', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ number })
+    });
+    if(res.ok) alert('အထွက်ဂဏန်း သတ်မှတ်ပြီးပါပြီ!');
+  }
+
+  async function updateBalance() {
+    const username = document.getElementById('targetUser').value;
+    const amount = document.getElementById('transferAmt').value;
+
+    const res = await fetch('/api/admin/update-balance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, amount })
+    });
+    const data = await res.json();
+    if(res.ok) {
+      alert(`User: ${username} ၏ လက်ကျန်ငွေ ပြင်ဆင်ပြီးပါပြီ။ Current: K${data.balance}`);
+    } else {
+      alert(data.error);
+    }
+  }
+</script>
+</body>
+</html>
 
