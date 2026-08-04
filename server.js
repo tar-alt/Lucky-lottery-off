@@ -202,7 +202,7 @@ io.on('connection', (socket) => {
   // =========================
   socket.on('admin_set_target_result', (data) => {
     manualTargetResult = data.target;
-    io.emit('admin_toast', `နောက်ပွဲစဉ်အတွက် ဂဏန်း (${data.target}) ဟု ဂျစ်သတ်မှတ်လိုက်ပါပြီ။`);
+    io.emit('admin_toast', `နောက်ပွဲစဉ်အတွက် ဂဏန်း (${data.target}) ဟု သတ်မှတ်လိုက်ပါပြီ။`);
   });
 
   socket.on('admin_update_balance', (data) => {
@@ -222,32 +222,44 @@ io.on('connection', (socket) => {
     }
   });
 
-  function sendAdminStats() {
-    const onlineCount = io.engine.clientsCount;
-    const userList = Object.values(users);
-
-    let betSummary = {};
-    currentBets.forEach(b => {
-      betSummary[b.betType] = (betSummary[b.betType] || 0) + b.amount;
-    });
-
-    let topBetText = currentBets.length > 0 
-      ? Object.entries(betSummary).map(([type, amt]) => `${type}: K${amt}`).join(' | ') 
-      : "လက်ရှိ ပွဲစဉ်တွင် လောင်းကြေး မရှိသေးပါ";
-
-    io.emit('admin_stats_update', {
-      onlineCount: onlineCount,
-      topBetInfo: topBetText,
-      users: userList
-    });
-  }
-
-  sendAdminStats();
+  // ** ထပ်မံပေါင်းထည့်ထားသည်: USER DELETE FEATURE **
+  socket.on('admin_delete_user', (phone) => {
+    if (phone && users[phone]) {
+      delete users[phone];
+      saveData();
+      sendAdminStats();
+      socket.emit('admin_toast', `User ${phone} အကောင့်အား အပြီးတိုင် ဖျက်လိုက်ပါပြီ။`);
+    } else {
+      socket.emit('admin_toast', `User ${phone} အကောင့် ရှာမတွေ့ပါ။`);
+    }
+  });
 
   socket.on('disconnect', () => {
     sendAdminStats();
   });
 });
+
+function sendAdminStats() {
+  const onlineCount = io.engine.clientsCount;
+  const userList = Object.values(users);
+
+  let betSummary = {};
+  currentBets.forEach(b => {
+    betSummary[b.betType] = (betSummary[b.betType] || 0) + b.amount;
+  });
+
+  let topBetText = currentBets.length > 0 
+    ? Object.entries(betSummary).map(([type, amt]) => `${type}: K${amt}`).join(' | ') 
+    : "လက်ရှိ ပွဲစဉ်တွင် လောင်းကြေး မရှိသေးပါ";
+
+  io.emit('admin_stats_update', {
+    onlineCount: onlineCount,
+    topBetInfo: topBetText,
+    users: userList,
+    timer: gameSeconds,
+    period: String(gamePeriod)
+  });
+}
 
 // ==========================================
 // 60% / 40% PROFIT ALGORITHM & RESULT CALCULATION
@@ -274,10 +286,12 @@ function calculateGameResult() {
       currentBets.forEach(b => {
         if (String(num) === b.betType) totalPayout += b.amount * 9;
         else if (b.betType === size) totalPayout += b.amount * 2;
-        else if (b.betType === 'GREEN' && color === 'green') totalPayout += b.amount * 2;
-        else if (b.betType === 'GREEN' && color === 'violet-green') totalPayout += b.amount * 1.5;
-        else if (b.betType === 'RED' && color === 'red') totalPayout += b.amount * 2;
-        else if (b.betType === 'RED' && color === 'violet-red') totalPayout += b.amount * 1.5;
+        else if (b.betType === 'GREEN' && (color === 'green' || color === 'violet-green')) {
+          totalPayout += color === 'green' ? b.amount * 2 : b.amount * 1.5;
+        }
+        else if (b.betType === 'RED' && (color === 'red' || color === 'violet-red')) {
+          totalPayout += color === 'red' ? b.amount * 2 : b.amount * 1.5;
+        }
         else if (b.betType === 'VIOLET' && (num === 0 || num === 5)) totalPayout += b.amount * 4.5;
       });
 
@@ -317,10 +331,14 @@ function processPayouts(result) {
     if (String(result.number) === bet.betType) winRatio = 9;
     else if (bet.betType === result.size) winRatio = 2;
     else if (bet.betType === 'GREEN') {
-      if (result.color === 'green' || result.color === 'violet-green') winRatio = result.color === 'green' ? 2 : 1.5;
+      if (result.color === 'green' || result.color === 'violet-green') {
+        winRatio = result.color === 'green' ? 2 : 1.5;
+      }
     }
     else if (bet.betType === 'RED') {
-      if (result.color === 'red' || result.color === 'violet-red') winRatio = result.color === 'red' ? 2 : 1.5;
+      if (result.color === 'red' || result.color === 'violet-red') {
+        winRatio = result.color === 'red' ? 2 : 1.5;
+      }
     }
     else if (bet.betType === 'VIOLET' && (result.number === 0 || result.number === 5)) winRatio = 4.5;
 
@@ -344,7 +362,9 @@ function processPayouts(result) {
 
     betHistory.unshift(historyRecord);
 
+    // Pop-up Dynamic Sync ပေးရန် Socket Emit
     io.to(user.phone).emit('user_bet_settled', historyRecord);
+    io.to(user.phone).emit('balance_sync', user.balance);
   });
 
   currentBets = [];
@@ -364,6 +384,7 @@ setInterval(() => {
       size: result.size
     };
 
+    // Payout တွက်ပြီးမှ History Database ဖြည့်ပါသည်
     processPayouts(result);
 
     gameHistory.unshift(historyItem);
@@ -371,16 +392,20 @@ setInterval(() => {
 
     saveData();
 
+    // Game Result ကို ပြိုင်တူ Broadcast ပေးခြင်း (Pop-up/History တလွဲမဖြစ်စေရန်)
     io.emit("game_result", historyItem);
 
     gamePeriod++;
     gameSeconds = 60; // 1min
   }
 
+  // Timer Update ပို့ပေးခြင်း (Admin stats ကိုပါ Live Timer မပြတ်စေရန် ပေါင်းစပ်ပေးထားပါသည်)
   io.emit("timer_update", {
     timer: gameSeconds,
     period: String(gamePeriod)
   });
+
+  sendAdminStats();
 
 }, 1000);
 
