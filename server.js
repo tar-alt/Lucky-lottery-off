@@ -200,7 +200,6 @@ io.on('connection', (socket) => {
   // =========================
   // ADMIN CONTROLS
   // =========================
-  // ADMIN INIT Event
   socket.on('admin_init', () => {
     socket.emit('admin_data', {
       onlineUsers: io.engine.clientsCount,
@@ -209,7 +208,6 @@ io.on('connection', (socket) => {
       timer: gameSeconds,
       period: String(gamePeriod)
     });
-    // တန်းပြီး အချိန်ပြသွားအောင် စက္ကန့်တိုင်း ပို့တဲ့ Stats ကို ခေါ်လိုက်ပါမယ်
     sendAdminStats();
   });
 
@@ -236,7 +234,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // ** ထပ်မံပေါင်းထည့်ထားသည်: USER DELETE FEATURE **
   socket.on('admin_delete_user', (phone) => {
     if (phone && users[phone]) {
       delete users[phone];
@@ -276,7 +273,7 @@ function sendAdminStats() {
 }
 
 // ==========================================
-// 60% / 40% PROFIT ALGORITHM & RESULT CALCULATION
+// RESULT CALCULATION & PAYOUT LOGIC
 // ==========================================
 function calculateGameResult() {
   let finalNumber;
@@ -285,28 +282,27 @@ function calculateGameResult() {
     finalNumber = parseInt(manualTargetResult);
     manualTargetResult = "AUTO"; 
   } else if (currentBets.length > 0) {
-    let totalBetsAmount = currentBets.reduce((sum, b) => sum + b.amount, 0);
     let possibleResults = [];
 
     for (let num = 0; num <= 9; num++) {
-      let color = 'green';
-      if (num === 0) color = 'violet-red';
-      else if (num === 5) color = 'violet-green';
-      else if (num % 2 === 0) color = 'red';
-
+      let isGreen = [1, 3, 7, 9].includes(num);
+      let isRed = [2, 4, 6, 8].includes(num);
+      let isViolet = [0, 5].includes(num);
       let size = num >= 5 ? 'BIG' : 'SMALL';
       let totalPayout = 0;
 
       currentBets.forEach(b => {
         if (String(num) === b.betType) totalPayout += b.amount * 9;
         else if (b.betType === size) totalPayout += b.amount * 2;
-        else if (b.betType === 'GREEN' && (color === 'green' || color === 'violet-green')) {
-          totalPayout += color === 'green' ? b.amount * 2 : b.amount * 1.5;
+        else if (b.betType === 'GREEN' && (isGreen || isViolet)) {
+          totalPayout += isGreen ? b.amount * 2 : b.amount * 1.5;
         }
-        else if (b.betType === 'RED' && (color === 'red' || color === 'violet-red')) {
-          totalPayout += color === 'red' ? b.amount * 2 : b.amount * 1.5;
+        else if (b.betType === 'RED' && (isRed || isViolet)) {
+          totalPayout += isRed ? b.amount * 2 : b.amount * 1.5;
         }
-        else if (b.betType === 'VIOLET' && (num === 0 || num === 5)) totalPayout += b.amount * 4.5;
+        else if (b.betType === 'VIOLET' && isViolet) {
+          totalPayout += b.amount * 4.5;
+        }
       });
 
       possibleResults.push({ number: num, payout: totalPayout });
@@ -314,8 +310,8 @@ function calculateGameResult() {
 
     possibleResults.sort((a, b) => a.payout - b.payout);
 
+    // 60% House Edge / Lowest Payout Algorithm
     let isHouseWinRate = Math.random() < 0.60;
-
     if (isHouseWinRate) {
       finalNumber = possibleResults[0].number;
     } else {
@@ -325,10 +321,10 @@ function calculateGameResult() {
     finalNumber = Math.floor(Math.random() * 10);
   }
 
-  let color = 'green';
-  if (finalNumber === 0) color = 'violet-red';
-  else if (finalNumber === 5) color = 'violet-green';
-  else if (finalNumber % 2 === 0) color = 'red';
+  // ရလဒ် အရောင်နှင့် ဆိုဒ် သတ်မှတ်ခြင်း
+  let color = 'GREEN';
+  if ([2, 4, 6, 8].includes(finalNumber)) color = 'RED';
+  else if ([0, 5].includes(finalNumber)) color = 'VIOLET';
 
   let size = finalNumber >= 5 ? 'BIG' : 'SMALL';
 
@@ -341,20 +337,21 @@ function processPayouts(result) {
     if (!user) return;
 
     let winRatio = 0;
+    const num = result.number;
 
-    if (String(result.number) === bet.betType) winRatio = 9;
-    else if (bet.betType === result.size) winRatio = 2;
-    else if (bet.betType === 'GREEN') {
-      if (result.color === 'green' || result.color === 'violet-green') {
-        winRatio = result.color === 'green' ? 2 : 1.5;
-      }
+    if (String(num) === bet.betType) {
+      winRatio = 9;
+    } else if (bet.betType === result.size) {
+      winRatio = 2;
+    } else if (bet.betType === 'GREEN') {
+      if ([1, 3, 7, 9].includes(num)) winRatio = 2;
+      else if ([0, 5].includes(num)) winRatio = 1.5;
+    } else if (bet.betType === 'RED') {
+      if ([2, 4, 6, 8].includes(num)) winRatio = 2;
+      else if ([0, 5].includes(num)) winRatio = 1.5;
+    } else if (bet.betType === 'VIOLET' && [0, 5].includes(num)) {
+      winRatio = 4.5;
     }
-    else if (bet.betType === 'RED') {
-      if (result.color === 'red' || result.color === 'violet-red') {
-        winRatio = result.color === 'red' ? 2 : 1.5;
-      }
-    }
-    else if (bet.betType === 'VIOLET' && (result.number === 0 || result.number === 5)) winRatio = 4.5;
 
     let isWin = winRatio > 0;
     let winAmount = isWin ? bet.amount * winRatio : 0;
@@ -363,7 +360,6 @@ function processPayouts(result) {
       user.balance += winAmount;
     }
 
-    // Pop-up မှာ ရလဒ်အမှန် (Number, Color, Size) တန်းပြနိုင်အောင် Data အပြည့်အစုံ ပို့ပေးခြင်း
     const historyRecord = {
       phone: user.phone,
       period: bet.period,
@@ -371,15 +367,15 @@ function processPayouts(result) {
       amount: bet.amount,
       win: isWin,
       winAmount: winAmount,
-      resultNumber: result.number, // ထွက်ရှိသွားသော အမှန်တကယ် နံပါတ်
-      resultColor: result.color,   // ထွက်ရှိသွားသော အမှန်တကယ် အရောင်
-      resultSize: result.size,     // ထွက်ရှိသွားသော အမှန်တကယ် ဆိုဒ် (BIG/SMALL)
+      resultNumber: result.number,
+      resultColor: result.color,
+      resultSize: result.size,
       newBalance: user.balance
     };
 
     betHistory.unshift(historyRecord);
 
-    // Pop-up ပြရန် Data ပို့ခြင်း
+    // Pop-up ပြရန်နှင့် Balance Update အတွက် Data ပို့ခြင်း (အနိုင်/အရှုံး နှစ်ခုလုံး ပို့ပေးပါသည်)
     io.to(user.phone).emit('user_bet_settled', historyRecord);
     io.to(user.phone).emit('balance_sync', user.balance);
   });
@@ -401,7 +397,6 @@ setInterval(() => {
       size: result.size
     };
 
-    // Payout တွက်ပြီးမှ History Database ဖြည့်ပါသည်
     processPayouts(result);
 
     gameHistory.unshift(historyItem);
@@ -409,14 +404,13 @@ setInterval(() => {
 
     saveData();
 
-    // Game Result ကို ပြိုင်တူ Broadcast ပေးခြင်း (Pop-up/History တလွဲမဖြစ်စေရန်)
+    // Game Result Broadcast
     io.emit("game_result", historyItem);
 
     gamePeriod++;
     gameSeconds = 60; // 1min
   }
 
-  // Timer Update ပို့ပေးခြင်း (Admin stats ကိုပါ Live Timer မပြတ်စေရန် ပေါင်းစပ်ပေးထားပါသည်)
   io.emit("timer_update", {
     timer: gameSeconds,
     period: String(gamePeriod)
