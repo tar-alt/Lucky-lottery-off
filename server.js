@@ -6,7 +6,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Public folder ထဲက HTML/JS ဖိုင်တွေကို Serve လုပ်ရန်
+// Public folder ထဲက HTML/JS ဖိုင်များကို Serve လုပ်ရန်
 app.use(express.static(__dirname + '/public')); 
 
 // Global Variables
@@ -157,12 +157,13 @@ io.on('connection', (socket) => {
       period: String(gamePeriod)
     });
 
-    // Client သို့ Update balance နှင့် အကြောင်းပြန်မည်
+    // Client သို့ Response နှင့် Sync Balance ပြန်ပို့ပေးမည်
     socket.emit('bet_response', {
       success: true,
       message: 'လောင်းကြေး တင်ပြီးပါပြီ!',
       newBalance: user.balance
     });
+    socket.emit('balance_sync', user.balance);
 
     sendAdminStats();
   });
@@ -182,21 +183,19 @@ io.on('connection', (socket) => {
       }
       users[phone].balance += amount;
       
-      // Admin Panel ဆီ Data ပြန်ပို့ပေးရန်
+      // Admin Panel သို့ Data ပို့ပေးရန်
       sendAdminStats();
 
       // User ဆီ Realtime Balance လွှတ်ပေးမည်
-      io.emit('user_balance_updated', { phone: phone, newBalance: users[phone].balance });
+      io.emit('balance_sync', users[phone].balance);
       console.log(`[BALANCE UPDATE] ${phone} new balance: ${users[phone].balance}`);
     }
   });
 
-  // Admin Dashboard သို့ Live Data များ ပို့ပေးရန် Function
   function sendAdminStats() {
     const onlineCount = io.engine.clientsCount;
     const userList = Object.values(users);
 
-    // လောင်းကြေးများ စာရင်းချုပ်
     let betSummary = {};
     currentBets.forEach(b => {
       betSummary[b.betType] = (betSummary[b.betType] || 0) + b.amount;
@@ -216,7 +215,6 @@ io.on('connection', (socket) => {
     });
   }
 
-  // Connect ဖြစ်လာတိုင်း Admin Stats ပို့ပေးမည်
   sendAdminStats();
 
   socket.on('disconnect', () => {
@@ -230,17 +228,12 @@ function calculateGameResult() {
   let finalNumber;
 
   if (manualTargetResult !== "AUTO") {
-    // Admin က နံပါတ် ရွေးထားခဲ့ပါက ထိုနံပါတ်အတိုင်း ထုတ်ပေးမည်
     finalNumber = parseInt(manualTargetResult);
-    
-    // တစ်ကြိမ်ထွက်ပြီးရင် Auto ပြန်ပြောင်းချင်ပါက အောက်ပါလိုင်းကို Uncomment ဖွင့်ပါ
-    // manualTargetResult = "AUTO"; 
+    manualTargetResult = "AUTO"; // Result ထုတ်ပြီးရင် AUTO ပြန်ပြောင်းမည်
   } else {
-    // ရိုးရိုး Random ဂဏန်း (0 မှ 9) ထုတ်ပေးမည်
     finalNumber = Math.floor(Math.random() * 10);
   }
 
-  // WinGo Color Rules (0 & 5 မှာ Violet ပါဝင်သည်)
   let color = 'green';
   if (finalNumber === 0) color = 'violet-red';
   else if (finalNumber === 5) color = 'violet-green';
@@ -249,44 +242,6 @@ function calculateGameResult() {
   let size = finalNumber >= 5 ? 'BIG' : 'SMALL';
 
   return { number: finalNumber, color: color, size: size };
-}
-
-// =========================
-// WIN GO GAME TIMER & PAYOUT
-// =========================
-
-const PORT = process.env.PORT || 3000;
-
-// Game Result
-function getGameResult() {
-  let number;
-
-  if (manualTargetResult !== "AUTO") {
-    number = parseInt(manualTargetResult);
-
-    // Admin သတ်မှတ်ထားတဲ့ result ကို တစ်ကြိမ်ပဲသုံးမယ်
-    manualTargetResult = "AUTO";
-  } else {
-    number = Math.floor(Math.random() * 10);
-  }
-
-  let color = "green";
-
-  if (number === 0) {
-    color = "violet-red";
-  } else if (number === 5) {
-    color = "violet-green";
-  } else if (number % 2 === 0) {
-    color = "red";
-  }
-
-  const size = number >= 5 ? "BIG" : "SMALL";
-
-  return {
-    number: number,
-    color: color,
-    size: size
-  };
 }
 
 // နိုင်/ရှုံး ပိုက်ဆံတွက်ပေးသည့် Logic
@@ -305,43 +260,51 @@ function processPayouts(result) {
     else if (bet.betType === result.size) {
       winRatio = 2;
     }
-    // Color (Red / Green) (၂ ဆ)
-    else if (bet.betType === 'RED' && (result.color === 'red' || result.color === 'violet-red')) {
-      winRatio = result.color === 'violet-red' ? 1.5 : 2;
+    // Color (Red / Green)
+    else if (bet.betType === 'GREEN') {
+      if (result.color === 'green') winRatio = 2;
+      else if (result.color === 'violet-green') winRatio = 1.5;
     }
-    else if (bet.betType === 'GREEN' && (result.color === 'green' || result.color === 'violet-green')) {
-      winRatio = result.color === 'violet-green' ? 1.5 : 2;
+    else if (bet.betType === 'RED') {
+      if (result.color === 'red') winRatio = 2;
+      else if (result.color === 'violet-red') winRatio = 1.5;
     }
     // Violet (၄.၅ ဆ)
     else if (bet.betType === 'VIOLET' && (result.number === 0 || result.number === 5)) {
       winRatio = 4.5;
     }
 
-    if (winRatio > 0) {
-      const winAmount = bet.amount * winRatio;
+    let isWin = winRatio > 0;
+    let winAmount = isWin ? bet.amount * winRatio : 0;
+
+    if (isWin) {
       user.balance += winAmount;
-      
-      // နိုင်သူများထံ Live Balance update ပို့မည်
-      io.emit('user_balance_updated', { phone: user.phone, newBalance: user.balance });
     }
+
+    // Realtime Game Result & Balance Update သို့ လွှတ်ပေးရန်
+    io.emit('user_bet_settled', {
+      phone: user.phone,
+      period: bet.period,
+      betType: bet.betType,
+      amount: bet.amount,
+      win: isWin,
+      winAmount: winAmount,
+      newBalance: user.balance
+    });
   });
 
-  // ပွဲပြီးလျှင် လောင်းကြေးစာရင်း ပြန်ရှင်းမည်
+  // ပွဲပြီးလျှင် လောင်းကြေးစာရင်း ရှင်းမည်
   currentBets = [];
 }
 
 // =========================
 // GAME TIMER
 // =========================
-
 setInterval(() => {
-
   gameSeconds--;
 
-  // Timer ပြီးရင် Result ထုတ်
   if (gameSeconds <= 0) {
-
-    const result = getGameResult();
+    const result = calculateGameResult();
 
     const historyItem = {
       period: String(gamePeriod),
@@ -350,28 +313,24 @@ setInterval(() => {
       size: result.size
     };
 
-    // နိုင်/ရှုံး တွက်ချက်ပေးမည်
+    // နိုင်/ရှုံး တွက်ချက်မည်
     processPayouts(result);
 
-    // History သိမ်း
+    // History သိမ်းမည်
     gameHistory.unshift(historyItem);
-
-    // 50 ခုထက်ပိုရင် အဟောင်းဖျက်
     if (gameHistory.length > 50) {
       gameHistory.pop();
     }
 
-    // User အားလုံးဆီ Result ပို့
+    // User အားလုံးဆီ Result ပို့မည်
     io.emit("game_result", historyItem);
 
-    // Next period
+    // Next period & Reset Timer
     gamePeriod++;
-
-    // Timer ပြန်စ
     gameSeconds = 30;
   }
 
-  // User အားလုံးဆီ Timer ပို့
+  // Timer Update
   io.emit("timer_update", {
     timer: gameSeconds,
     period: String(gamePeriod)
@@ -379,11 +338,7 @@ setInterval(() => {
 
 }, 1000);
 
-
-// =========================
-// START SERVER
-// =========================
-
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Lucky Lottery server is running on port ${PORT}`);
 });
