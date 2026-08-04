@@ -200,9 +200,17 @@ io.on('connection', (socket) => {
   // =========================
   // ADMIN CONTROLS
   // =========================
-  socket.on('admin_set_target_result', (data) => {
-    manualTargetResult = data.target;
-    io.emit('admin_toast', `နောက်ပွဲစဉ်အတွက် ဂဏန်း (${data.target}) ဟု သတ်မှတ်လိုက်ပါပြီ။`);
+    // ADMIN INIT Event
+  socket.on('admin_init', () => {
+    socket.emit('admin_data', {
+      onlineUsers: io.engine.clientsCount,
+      users: Object.values(users),
+      targetResult: manualTargetResult,
+      timer: gameSeconds,
+      period: String(gamePeriod)
+    });
+    // တန်းပြီး အချိန်ပြသွားအောင် စက္ကန့်တိုင်း ပို့တဲ့ Stats ကို ခေါ်လိုက်ပါမယ်
+    sendAdminStats();
   });
 
   socket.on('admin_update_balance', (data) => {
