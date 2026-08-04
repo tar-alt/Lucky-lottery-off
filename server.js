@@ -200,7 +200,7 @@ io.on('connection', (socket) => {
   // =========================
   // ADMIN CONTROLS
   // =========================
-    // ADMIN INIT Event
+  // ADMIN INIT Event
   socket.on('admin_init', () => {
     socket.emit('admin_data', {
       onlineUsers: io.engine.clientsCount,
@@ -211,6 +211,12 @@ io.on('connection', (socket) => {
     });
     // တန်းပြီး အချိန်ပြသွားအောင် စက္ကန့်တိုင်း ပို့တဲ့ Stats ကို ခေါ်လိုက်ပါမယ်
     sendAdminStats();
+  });
+
+  // ADMIN SET TARGET RESULT (ဂဏန်း စိုက်ချရန်)
+  socket.on('admin_set_target_result', (data) => {
+    manualTargetResult = data.target;
+    io.emit('admin_toast', `နောက်ပွဲစဉ်အတွက် ဂဏန်း (${data.target}) ဟု သတ်မှတ်လိုက်ပါပြီ။`);
   });
 
   socket.on('admin_update_balance', (data) => {
@@ -357,6 +363,7 @@ function processPayouts(result) {
       user.balance += winAmount;
     }
 
+    // Pop-up မှာ ရလဒ်အမှန် (Number, Color, Size) တန်းပြနိုင်အောင် Data အပြည့်အစုံ ပို့ပေးခြင်း
     const historyRecord = {
       phone: user.phone,
       period: bet.period,
@@ -364,13 +371,15 @@ function processPayouts(result) {
       amount: bet.amount,
       win: isWin,
       winAmount: winAmount,
-      resultNumber: result.number,
+      resultNumber: result.number, // ထွက်ရှိသွားသော အမှန်တကယ် နံပါတ်
+      resultColor: result.color,   // ထွက်ရှိသွားသော အမှန်တကယ် အရောင်
+      resultSize: result.size,     // ထွက်ရှိသွားသော အမှန်တကယ် ဆိုဒ် (BIG/SMALL)
       newBalance: user.balance
     };
 
     betHistory.unshift(historyRecord);
 
-    // Pop-up Dynamic Sync ပေးရန် Socket Emit
+    // Pop-up ပြရန် Data ပို့ခြင်း
     io.to(user.phone).emit('user_bet_settled', historyRecord);
     io.to(user.phone).emit('balance_sync', user.balance);
   });
