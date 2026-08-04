@@ -47,7 +47,7 @@
     </div>
   </div>
 
-  <!-- 🎯 Target Result Control (ကျမည့်နံပါတ် ရွေးရန်) -->
+  <!-- 🎯 Target Result Control -->
   <div class="card" style="border: 1px solid #f39c12;">
     <div class="card-title">🎯 Result Control (ကျမည့်နံပါတ် သတ်မှတ်ရန်)</div>
     <p style="font-size: 12px; color: #94a3b8; margin-bottom: 10px;">
@@ -99,24 +99,26 @@
 <script>
   const socket = io();
 
-  // Admin မင်္ဂလာပါ Data ခေါ်ယူခြင်း
+  // Realtime Data များ ခေါ်ယူပြီး UI ထဲ သို့ ထည့်သွင်းခြင်း
   socket.on('admin_stats_update', (data) => {
     document.getElementById('onlineUsersCount').innerText = data.onlineCount || 0;
     document.getElementById('topBetStatus').innerText = data.topBetInfo || "လက်ရှိ ပွဲစဉ်တွင် လောင်းကြေး မရှိသေးပါ";
 
     // User List Render
+    const tbody = document.getElementById('userListBody');
     if (data.users && data.users.length > 0) {
-      const tbody = document.getElementById('userListBody');
       tbody.innerHTML = data.users.map(u => `
         <tr>
           <td style="color:#60a5fa; font-weight:bold;">${u.phone}</td>
-          <td style="color:#f1c40f; font-weight:bold;">K${u.balance.toLocaleString()}</td>
+          <td style="color:#f1c40f; font-weight:bold;">K${(u.balance || 0).toLocaleString()}</td>
         </tr>
       `).join('');
+    } else {
+      tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#64748b;">အကောင့်ဖွင့်ထားသူ မရှိသေးပါ</td></tr>`;
     }
   });
 
-  // ကျမည့်နံပါတ် သတ်မှတ်ပေးသည့် ပွဲစလွှတ်မည်
+  // ကျမည့်နံပါတ် သတ်မှတ်ပေးသည့် Function
   function setNextResult() {
     const selectedNum = document.getElementById('targetNumberSelect').value;
     socket.emit('admin_set_target_result', { target: selectedNum });
