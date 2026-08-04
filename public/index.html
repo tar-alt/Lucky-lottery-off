@@ -319,6 +319,7 @@
   let gameHistory = [];
   let myBetHistory = [];
   let currentTimer = 60;
+  let activeBetsList = [];
 
   function showToast(message, type = 'info') {
     const container = document.getElementById('toastContainer');
@@ -408,7 +409,8 @@
       updateBalanceUI();
 
       if (res.myCurrentBets) {
-        renderCurrentBets(res.myCurrentBets);
+        activeBetsList = res.myCurrentBets;
+        renderCurrentBets(activeBetsList);
       }
     }
   });
@@ -429,14 +431,23 @@
     gameHistory.unshift(res);
     if (gameHistory.length > 50) gameHistory.pop();
     renderGameHistory();
+    activeBetsList = [];
     renderCurrentBets([]); // Clear active bets UI on round finished
   });
 
   socket.on('user_bet_settled', (res) => {
-    if (currentUser && res.phone === currentUser.phone) {
+    if (currentUser && (res.phone === currentUser.phone || !res.phone)) {
       currentUser.balance = res.newBalance;
       updateBalanceUI();
-      myBetHistory.unshift(res);
+      
+      // My History ထဲတွင် အသစ်ထပ်ထည့်ရန်
+      myBetHistory.unshift({
+        period: res.period || (gameHistory[0] ? gameHistory[0].period : '-'),
+        betType: res.betType || '-',
+        amount: res.amount || 0,
+        win: res.win,
+        winAmount: res.winAmount || 0
+      });
       renderMyHistory();
       showResultModal(res);
     }
