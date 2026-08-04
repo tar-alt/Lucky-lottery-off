@@ -6,22 +6,18 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Public folder ထဲက HTML/JS ဖိုင်များကို Serve လုပ်ရန်
-app.use(express.static(__dirname + '/public')); 
+app.use(express.static(__dirname + '/public'));
 
-// Global Variables
 let manualTargetResult = "AUTO"; 
-let users = {};         // User စာရင်းနှင့် Balance သိမ်းရန်
-let currentBets = [];   // လက်ရှိပွဲစဉ်၏ လောင်းကြေးများ သိမ်းရန်
+let users = {};         
+let currentBets = [];   
 let gameSeconds = 30;
 let gamePeriod = 1;
 let gameHistory = [];
 
-// Socket.io Connection
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
-  // User ဝင်လာတာနဲ့ လက်ရှိ Game Data ပို့
   socket.emit("init_data", {
     history: gameHistory,
     period: String(gamePeriod),
@@ -88,29 +84,19 @@ io.on('connection', (socket) => {
       });
     }
 
-    users[phone] = {
-      phone: phone,
-      pass: pass,
-      balance: 0
-    };
-
-    console.log(`[REGISTER] New user: ${phone}`);
+    users[phone] = { phone: phone, pass: pass, balance: 0 };
 
     socket.emit('auth_response', {
       success: true,
       message: 'Register အောင်မြင်ပါတယ်',
-      user: {
-        phone: phone,
-        pass: pass,
-        balance: 0
-      }
+      user: { phone: phone, pass: pass, balance: 0 }
     });
 
     sendAdminStats();
   });
 
   // =========================
-  // PLACE BET (လောင်းကြေးတင်ခြင်း)
+  // PLACE BET
   // =========================
   socket.on('place_bet', (data) => {
     const { phone, betType, amount } = data || {};
@@ -134,11 +120,10 @@ io.on('connection', (socket) => {
     if (user.balance < betAmount) {
       return socket.emit('bet_response', {
         success: false,
-        message: 'လက်ကျန်ငွေ မလုံလောက်ပါ။'
+        message: 'လက်ကျန်ငွေ မလုံလောက်ပါ! ကျေးဇူးပြု၍ ငွေထပ်သွင်းပါ။'
       });
     }
 
-    // ချိန်ကိုက်စစ်မည် (နောက်ဆုံး ၅ စက္ကန့်တွင် လောင်းမရအောင်)
     if (gameSeconds <= 5) {
       return socket.emit('bet_response', {
         success: false,
@@ -146,10 +131,8 @@ io.on('connection', (socket) => {
       });
     }
 
-    // Balance ထဲမှ ပိုက်ဆံ နှုတ်မည်
     user.balance -= betAmount;
 
-    // လောင်းကြေးစာရင်းထဲ ထည့်မည်
     currentBets.push({
       phone: phone,
       betType: String(betType).toUpperCase(),
@@ -157,7 +140,6 @@ io.on('connection', (socket) => {
       period: String(gamePeriod)
     });
 
-    // Client သို့ Response နှင့် Sync Balance ပြန်ပို့ပေးမည်
     socket.emit('bet_response', {
       success: true,
       message: 'လောင်းကြေး တင်ပြီးပါပြီ!',
@@ -168,13 +150,10 @@ io.on('connection', (socket) => {
     sendAdminStats();
   });
 
-  // Admin မှ ကျမည့်နံပါတ် သတ်မှတ်ချက် လက်ခံခြင်း
   socket.on('admin_set_target_result', (data) => {
     manualTargetResult = data.target;
-    console.log(`[ADMIN CONTROL] Next target result set to: ${manualTargetResult}`);
   });
 
-  // Admin မှ Balance တိုး/လျှော့ ပို့လာခြင်း
   socket.on('admin_update_balance', (data) => {
     const { phone, amount } = data;
     if (phone && !isNaN(amount)) {
@@ -182,13 +161,8 @@ io.on('connection', (socket) => {
         users[phone] = { phone: phone, pass: '123456', balance: 0 };
       }
       users[phone].balance += amount;
-      
-      // Admin Panel သို့ Data ပို့ပေးရန်
       sendAdminStats();
-
-      // User ဆီ Realtime Balance လွှတ်ပေးမည်
       io.emit('balance_sync', users[phone].balance);
-      console.log(`[BALANCE UPDATE] ${phone} new balance: ${users[phone].balance}`);
     }
   });
 
@@ -201,13 +175,10 @@ io.on('connection', (socket) => {
       betSummary[b.betType] = (betSummary[b.betType] || 0) + b.amount;
     });
 
-    let topBetText = "လက်ရှိ ပွဲစဉ်တွင် လောင်းကြေး မရှိသေးပါ";
-    if (currentBets.length > 0) {
-      topBetText = Object.entries(betSummary)
-        .map(([type, amt]) => `${type}: K${amt}`)
-        .join(' | ');
-    }
-    
+    let topBetText = currentBets.length > 0 
+      ? Object.entries(betSummary).map(([type, amt]) => `${type}: K${amt}`).join(' | ') 
+      : "လက်ရှိ ပွဲစဉ်တွင် လောင်းကြေး မရှိသေးပါ";
+
     io.emit('admin_stats_update', {
       onlineCount: onlineCount,
       topBetInfo: topBetText,
@@ -218,19 +189,61 @@ io.on('connection', (socket) => {
   sendAdminStats();
 
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
     sendAdminStats();
   });
 });
 
-// Game Result တွက်ချက်ပေးသည့် Function
+// ==========================================
+// 60% / 40% PROFIT ALGORITHM & RESULT CALCULATION
+// ==========================================
 function calculateGameResult() {
   let finalNumber;
 
   if (manualTargetResult !== "AUTO") {
     finalNumber = parseInt(manualTargetResult);
-    manualTargetResult = "AUTO"; // Result ထုတ်ပြီးရင် AUTO ပြန်ပြောင်းမည်
+    manualTargetResult = "AUTO"; 
+  } else if (currentBets.length > 0) {
+    // လောင်းကြေးရှိလျှင် - ဒိုင်အတွက် 60% တွက်ချက်မည်
+    let totalBetsAmount = currentBets.reduce((sum, b) => sum + b.amount, 0);
+    let possibleResults = [];
+
+    for (let num = 0; num <= 9; num++) {
+      let color = 'green';
+      if (num === 0) color = 'violet-red';
+      else if (num === 5) color = 'violet-green';
+      else if (num % 2 === 0) color = 'red';
+
+      let size = num >= 5 ? 'BIG' : 'SMALL';
+      let totalPayout = 0;
+
+      // တိုင်ပွဲတစ်ခုချင်းစီ၏ အနိုင်ကြေး တွက်ထုတ်ခြင်း
+      currentBets.forEach(b => {
+        if (String(num) === b.betType) totalPayout += b.amount * 9;
+        else if (b.betType === size) totalPayout += b.amount * 2;
+        else if (b.betType === 'GREEN' && color === 'green') totalPayout += b.amount * 2;
+        else if (b.betType === 'GREEN' && color === 'violet-green') totalPayout += b.amount * 1.5;
+        else if (b.betType === 'RED' && color === 'red') totalPayout += b.amount * 2;
+        else if (b.betType === 'RED' && color === 'violet-red') totalPayout += b.amount * 1.5;
+        else if (b.betType === 'VIOLET' && (num === 0 || num === 5)) totalPayout += b.amount * 4.5;
+      });
+
+      possibleResults.push({ number: num, payout: totalPayout });
+    }
+
+    // Payout နိမ့်ဆုံးနံပါတ်များကို စီစဉ်ခြင်း
+    possibleResults.sort((a, b) => a.payout - b.payout);
+
+    // 60% Chance: ဒိုင် အမြတ်အများဆုံးရမည့် (Payout အနည်းဆုံး) နံပါတ် ထုတ်ပေးမည်
+    // 40% Chance: သာမန် Random ကျစေမည်
+    let isHouseWinRate = Math.random() < 0.60;
+
+    if (isHouseWinRate) {
+      finalNumber = possibleResults[0].number;
+    } else {
+      finalNumber = Math.floor(Math.random() * 10);
+    }
   } else {
+    // လောင်းကြေးမရှိပါက Random
     finalNumber = Math.floor(Math.random() * 10);
   }
 
@@ -244,7 +257,6 @@ function calculateGameResult() {
   return { number: finalNumber, color: color, size: size };
 }
 
-// နိုင်/ရှုံး ပိုက်ဆံတွက်ပေးသည့် Logic
 function processPayouts(result) {
   currentBets.forEach(bet => {
     const user = users[bet.phone];
@@ -252,15 +264,8 @@ function processPayouts(result) {
 
     let winRatio = 0;
 
-    // နံပါတ် တိုက်ရိုက်တူလျှင် (၉ ဆ)
-    if (String(result.number) === bet.betType) {
-      winRatio = 9;
-    }
-    // Big / Small (၂ ဆ)
-    else if (bet.betType === result.size) {
-      winRatio = 2;
-    }
-    // Color (Red / Green)
+    if (String(result.number) === bet.betType) winRatio = 9;
+    else if (bet.betType === result.size) winRatio = 2;
     else if (bet.betType === 'GREEN') {
       if (result.color === 'green') winRatio = 2;
       else if (result.color === 'violet-green') winRatio = 1.5;
@@ -269,10 +274,7 @@ function processPayouts(result) {
       if (result.color === 'red') winRatio = 2;
       else if (result.color === 'violet-red') winRatio = 1.5;
     }
-    // Violet (၄.၅ ဆ)
-    else if (bet.betType === 'VIOLET' && (result.number === 0 || result.number === 5)) {
-      winRatio = 4.5;
-    }
+    else if (bet.betType === 'VIOLET' && (result.number === 0 || result.number === 5)) winRatio = 4.5;
 
     let isWin = winRatio > 0;
     let winAmount = isWin ? bet.amount * winRatio : 0;
@@ -281,7 +283,6 @@ function processPayouts(result) {
       user.balance += winAmount;
     }
 
-    // Realtime Game Result & Balance Update သို့ လွှတ်ပေးရန်
     io.emit('user_bet_settled', {
       phone: user.phone,
       period: bet.period,
@@ -293,13 +294,9 @@ function processPayouts(result) {
     });
   });
 
-  // ပွဲပြီးလျှင် လောင်းကြေးစာရင်း ရှင်းမည်
   currentBets = [];
 }
 
-// =========================
-// GAME TIMER
-// =========================
 setInterval(() => {
   gameSeconds--;
 
@@ -313,24 +310,17 @@ setInterval(() => {
       size: result.size
     };
 
-    // နိုင်/ရှုံး တွက်ချက်မည်
     processPayouts(result);
 
-    // History သိမ်းမည်
     gameHistory.unshift(historyItem);
-    if (gameHistory.length > 50) {
-      gameHistory.pop();
-    }
+    if (gameHistory.length > 50) gameHistory.pop();
 
-    // User အားလုံးဆီ Result ပို့မည်
     io.emit("game_result", historyItem);
 
-    // Next period & Reset Timer
     gamePeriod++;
     gameSeconds = 30;
   }
 
-  // Timer Update
   io.emit("timer_update", {
     timer: gameSeconds,
     period: String(gamePeriod)
@@ -340,6 +330,6 @@ setInterval(() => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Lucky Lottery server is running on port ${PORT}`);
+  console.log(`Lucky Lottery server running on port ${PORT}`);
 });
 
