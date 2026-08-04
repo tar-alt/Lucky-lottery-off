@@ -104,6 +104,7 @@
 
     .badge-win { background: #10b981; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
     .badge-lose { background: #ef4444; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+    .badge-pending { background: #f59e0b; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
     .btn-delete-hist { background: #ef4444; border: none; padding: 6px 12px; border-radius: 6px; color: white; font-size: 11px; margin-top: 10px; cursor: pointer; }
   </style>
 </head>
@@ -162,9 +163,9 @@
 
   <!-- 3D Color Buttons -->
   <div class="color-section">
-    <button class="btn-3d btn-color-green" onclick="openBetModal('color', 'Green')">Green</button>
-    <button class="btn-3d btn-color-violet" onclick="openBetModal('color', 'Violet')">Violet</button>
-    <button class="btn-3d btn-color-red" onclick="openBetModal('color', 'Red')">Red</button>
+    <button class="btn-3d btn-color-green" onclick="openBetModal('color', 'GREEN')">Green</button>
+    <button class="btn-3d btn-color-violet" onclick="openBetModal('color', 'VIOLET')">Violet</button>
+    <button class="btn-3d btn-color-red" onclick="openBetModal('color', 'RED')">Red</button>
   </div>
 
   <!-- 3D Number Balls Grid -->
@@ -183,8 +184,8 @@
 
   <!-- 3D Size Buttons -->
   <div class="size-section">
-    <button class="btn-3d btn-big" onclick="openBetModal('size', 'Big')">Big</button>
-    <button class="btn-3d btn-small" onclick="openBetModal('size', 'Small')">Small</button>
+    <button class="btn-3d btn-big" onclick="openBetModal('size', 'BIG')">Big</button>
+    <button class="btn-3d btn-small" onclick="openBetModal('size', 'SMALL')">Small</button>
   </div>
 
   <!-- History Section -->
@@ -279,18 +280,18 @@
     
     <div style="margin-bottom: 10px; font-size:13px;">Balance Base:</div>
     <div class="chips">
-      <div class="chip" onclick="setBaseAmt(10)">10</div>
-      <div class="chip" onclick="setBaseAmt(100)">100</div>
-      <div class="chip active" id="chip1000" onclick="setBaseAmt(1000)">1000</div>
-      <div class="chip" onclick="setBaseAmt(10000)">10000</div>
+      <div class="chip" onclick="setBaseAmt(10, this)">10</div>
+      <div class="chip" onclick="setBaseAmt(100, this)">100</div>
+      <div class="chip active" onclick="setBaseAmt(1000, this)">1000</div>
+      <div class="chip" onclick="setBaseAmt(10000, this)">10000</div>
     </div>
 
     <div style="margin: 15px 0 10px; font-size:13px;">Multiplier:</div>
     <div class="chips">
-      <div class="chip active" onclick="setMultiplier(1)">X1</div>
-      <div class="chip" onclick="setMultiplier(5)">X5</div>
-      <div class="chip" onclick="setMultiplier(10)">X10</div>
-      <div class="chip" onclick="setMultiplier(50)">X50</div>
+      <div class="chip active" onclick="setMultiplier(1, this)">X1</div>
+      <div class="chip" onclick="setMultiplier(5, this)">X5</div>
+      <div class="chip" onclick="setMultiplier(10, this)">X10</div>
+      <div class="chip" onclick="setMultiplier(50, this)">X50</div>
     </div>
 
     <button class="btn-submit" onclick="submitBet()">Confirm - Total K<span id="totalAmount">1,000</span></button>
@@ -307,7 +308,6 @@
   let myBets = [];
   let txLogs = [];
 
-  // LocalStorage စစ်ဆေးပြီး Password Auto ဖြည့်ပေးမည်
   window.onload = () => {
     const savedPhone = localStorage.getItem('ll_saved_phone');
     const savedPass = localStorage.getItem('ll_saved_pass');
@@ -339,7 +339,6 @@
 
   socket.on('auth_response', (res) => {
     if (res.success) {
-      // LocalStorage သို့ အော်တိုမှတ်ထားပေးမည်
       localStorage.setItem('ll_saved_phone', res.user.phone);
       localStorage.setItem('ll_saved_pass', res.user.pass);
 
@@ -372,6 +371,32 @@
     }
   });
 
+  socket.on('bet_response', (res) => {
+    alert(res.message);
+    if (res.success && res.newBalance !== undefined) {
+      currentUser.balance = res.newBalance;
+      updateBalanceUI();
+    }
+  });
+
+  socket.on('game_result', (res) => {
+    gameHistory.unshift(res);
+    if (gameHistory.length > 50) gameHistory.pop();
+    renderGameHistory();
+  });
+
+  socket.on('user_bet_settled', (res) => {
+    if (currentUser && res.phone === currentUser.phone) {
+      const matchBet = myBets.find(b => b.period === res.period && b.value === res.betType && b.status === 'PENDING');
+      if (matchBet) {
+        matchBet.status = res.win ? 'WIN' : 'LOSE';
+      }
+      currentUser.balance = res.newBalance;
+      updateBalanceUI();
+      renderMyHistory();
+    }
+  });
+
   function updateBalanceUI() {
     if (currentUser) {
       document.getElementById('balanceDisplay').innerText = `K${currentUser.balance.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
@@ -398,12 +423,15 @@
     const tbody = document.getElementById('gameHistoryBody');
     tbody.innerHTML = gameHistory.map(h => {
       let bg = h.color === 'green' ? '#10b981' : (h.color === 'red' ? '#ef4444' : '#a855f7');
+      if (h.color === 'violet-red') bg = 'linear-gradient(135deg, #a855f7 50%, #ef4444 50%)';
+      if (h.color === 'violet-green') bg = 'linear-gradient(135deg, #a855f7 50%, #10b981 50%)';
+
       return `
         <tr>
           <td>${h.period}</td>
           <td><span class="res-ball" style="background:${bg}">${h.number}</span></td>
           <td style="font-weight:bold; color:${h.size === 'BIG'?'#f97316':'#3b82f6'}">${h.size}</td>
-          <td><span style="color:${bg}">●</span></td>
+          <td><span style="color:${h.color.includes('green')?'#10b981':(h.color.includes('red')?'#ef4444':'#a855f7')}">●</span></td>
         </tr>
       `;
     }).join('');
@@ -417,7 +445,11 @@
         <td>${b.period}</td>
         <td>${b.value}</td>
         <td>K${b.amount}</td>
-        <td><span class="${b.win ? 'badge-win':'badge-lose'}">${b.win ? 'WIN' : 'LOSE'}</span></td>
+        <td>
+          <span class="${b.status === 'WIN' ? 'badge-win' : (b.status === 'LOSE' ? 'badge-lose' : 'badge-pending')}">
+            ${b.status}
+          </span>
+        </td>
       </tr>
     `).join('');
   }
@@ -446,13 +478,17 @@
     document.getElementById('betDrawer').style.display = 'flex';
   }
 
-  function setBaseAmt(amt) {
+  function setBaseAmt(amt, el) {
     activeBet.baseAmt = amt;
+    el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
     updateBetTotal();
   }
 
-  function setMultiplier(mult) {
+  function setMultiplier(mult, el) {
     activeBet.qty = mult;
+    el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
     updateBetTotal();
   }
 
@@ -470,21 +506,21 @@
     }
 
     const currentPeriod = document.getElementById('periodDisplay').innerText.replace('P: ', '');
+    
     myBets.unshift({
       period: currentPeriod,
       value: activeBet.value,
       amount: total,
-      win: Math.random() < 0.5
+      status: 'PENDING'
     });
 
     socket.emit('place_bet', {
       phone: currentUser.phone,
-      bet: activeBet,
-      totalAmount: total
+      betType: activeBet.value,
+      amount: total
     });
 
     closeModals();
-    alert(`ထိုးကြေး K${total.toLocaleString()} ဖြင့် ${activeBet.value} အား အောင်မြင်စွာ ထိုးပြီးပါပြီ!`);
   }
 
   function submitDeposit() {
