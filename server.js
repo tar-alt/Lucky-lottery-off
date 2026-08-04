@@ -321,10 +321,19 @@ function calculateGameResult() {
     finalNumber = Math.floor(Math.random() * 10);
   }
 
-  // ရလဒ် အရောင်နှင့် ဆိုဒ် သတ်မှတ်ခြင်း
+  // အရောင် ပိုမိုတိကျစွာ သတ်မှတ်ခြင်း
+  // 1,3,7,9 = GREEN
+  // 2,4,6,8 = RED
+  // 0 = VIOLET_RED (ခရမ်း + အနီ)
+  // 5 = VIOLET_GREEN (ခရမ်း + အစိမ်း)
   let color = 'GREEN';
-  if ([2, 4, 6, 8].includes(finalNumber)) color = 'RED';
-  else if ([0, 5].includes(finalNumber)) color = 'VIOLET';
+  if ([2, 4, 6, 8].includes(finalNumber)) {
+    color = 'RED';
+  } else if (finalNumber === 0) {
+    color = 'VIOLET_RED';
+  } else if (finalNumber === 5) {
+    color = 'VIOLET_GREEN';
+  }
 
   let size = finalNumber >= 5 ? 'BIG' : 'SMALL';
 
@@ -375,7 +384,7 @@ function processPayouts(result) {
 
     betHistory.unshift(historyRecord);
 
-    // Pop-up ပြရန်နှင့် Balance Update အတွက် Data ပို့ခြင်း (အနိုင်/အရှုံး နှစ်ခုလုံး ပို့ပေးပါသည်)
+    // Pop-up ပြရန်နှင့် Balance Update အတွက် Data ပို့ခြင်း
     io.to(user.phone).emit('user_bet_settled', historyRecord);
     io.to(user.phone).emit('balance_sync', user.balance);
   });
