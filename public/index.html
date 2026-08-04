@@ -103,6 +103,24 @@
     .chip { flex: 1; padding: 8px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; text-align: center; font-size: 12px; cursor: pointer; }
     .chip.active { background: var(--orange-3d); border-color: #f97316; }
 
+    /* Custom Amount Input Box Style */
+    .custom-input-box {
+      width: 100%;
+      padding: 12px 14px;
+      margin: 10px 0 15px;
+      border-radius: 12px;
+      border: 1px solid #f97316;
+      background: #0f172a;
+      color: #f1c40f;
+      font-size: 16px;
+      font-weight: bold;
+      outline: none;
+      text-align: center;
+    }
+    .custom-input-box:focus {
+      box-shadow: 0 0 10px rgba(249, 115, 22, 0.4);
+    }
+
     #resultModalOverlay {
       position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); z-index: 5000; display: none; justify-content: center; align-items: center; padding: 20px; backdrop-filter: blur(4px);
     }
@@ -276,6 +294,11 @@
       <div class="chip active" onclick="setBaseAmt(1000, this)">1000</div>
       <div class="chip" onclick="setBaseAmt(10000, this)">10000</div>
     </div>
+    
+    <!-- Custom Amount Input Box -->
+    <div style="margin: 12px 0 4px; font-size:13px; color:#f1c40f;">သို့မဟုတ် စိတ်ကြိုက် ပမာဏ ရိုက်ထည့်ပါ:</div>
+    <input type="number" id="customBetInput" class="custom-input-box" placeholder="ဥပမာ- 500, 2500" oninput="onCustomInput(this.value)">
+
     <div style="margin: 15px 0 10px; font-size:13px;">Multiplier:</div>
     <div class="chips">
       <div class="chip active" onclick="setMultiplier(1, this)">X1</div>
@@ -292,7 +315,7 @@
   const socket = io();
   let isRegisterMode = false;
   let currentUser = null;
-  let activeBet = { type: '', value: '', baseAmt: 1000, qty: 1 };
+  let activeBet = { type: '', value: '', baseAmt: 1000, qty: 1, customAmt: null };
   let gameHistory = [];
   let myBetHistory = [];
   let currentTimer = 60;
@@ -504,12 +527,22 @@
 
     activeBet.type = type;
     activeBet.value = val;
+    activeBet.customAmt = null;
     document.getElementById('selectedItem').innerText = val;
+
+    // Custom Input Box ကို Clear လုပ်ပေးရန်
+    const customInput = document.getElementById('customBetInput');
+    if(customInput) customInput.value = '';
+
+    updateBetTotal();
     document.getElementById('betDrawer').style.display = 'flex';
   }
 
   function setBaseAmt(amt, el) {
     activeBet.baseAmt = amt;
+    activeBet.customAmt = null;
+    document.getElementById('customBetInput').value = '';
+
     el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
     el.classList.add('active');
     updateBetTotal();
@@ -522,8 +555,24 @@
     updateBetTotal();
   }
 
+  function onCustomInput(val) {
+    const amt = parseInt(val);
+    if (!isNaN(amt) && amt > 0) {
+      activeBet.customAmt = amt;
+    } else {
+      activeBet.customAmt = null;
+    }
+    updateBetTotal();
+  }
+
   function updateBetTotal() {
-    document.getElementById('totalAmount').innerText = (activeBet.baseAmt * activeBet.qty).toLocaleString();
+    let total = 0;
+    if (activeBet.customAmt !== null && activeBet.customAmt > 0) {
+      total = activeBet.customAmt * activeBet.qty;
+    } else {
+      total = activeBet.baseAmt * activeBet.qty;
+    }
+    document.getElementById('totalAmount').innerText = total.toLocaleString();
   }
 
   function submitBet() {
@@ -532,7 +581,17 @@
       return closeModals();
     }
 
-    const total = activeBet.baseAmt * activeBet.qty;
+    let total = 0;
+    if (activeBet.customAmt !== null && activeBet.customAmt > 0) {
+      total = activeBet.customAmt * activeBet.qty;
+    } else {
+      total = activeBet.baseAmt * activeBet.qty;
+    }
+
+    if (isNaN(total) || total <= 0) {
+      return showToast('မှန်ကန်သော လောင်းကြေးပမာဏ ဖြည့်ပါ', 'error');
+    }
+
     if(currentUser.balance < total) return showToast('လက်ကျန်ငွေ မလုံလောက်ပါ', 'error');
 
     socket.emit('place_bet', {
