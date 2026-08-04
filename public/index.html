@@ -22,35 +22,11 @@
     
     .app { width: 100%; max-width: 480px; min-height: 100vh; background: var(--bg-main); padding: 12px; position: relative; padding-bottom: 40px; }
 
-    /* Custom Toast Notification UI */
     #toastContainer {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9999;
-      width: 90%;
-      max-width: 400px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      pointer-events: none;
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; pointer-events: none;
     }
     .toast-box {
-      background: rgba(30, 41, 59, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: #fff;
-      padding: 14px 18px;
-      border-radius: 14px;
-      font-size: 14px;
-      font-weight: 600;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-      backdrop-filter: blur(8px);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      pointer-events: auto;
-      animation: slideDown 0.3s forwards;
+      background: rgba(30, 41, 59, 0.95); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; padding: 14px 18px; border-radius: 14px; font-size: 14px; font-weight: 600; box-shadow: 0 10px 25px rgba(0,0,0,0.5); backdrop-filter: blur(8px); display: flex; align-items: center; gap: 12px; pointer-events: auto; animation: slideDown 0.3s forwards;
     }
     .toast-box.info { border-left: 5px solid #3b82f6; }
     .toast-box.success { border-left: 5px solid #10b981; }
@@ -61,18 +37,15 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Auth / Login Overlay */
     #authOverlay { position: fixed; inset: 0; background: #0f172a; z-index: 2000; display: flex; justify-content: center; align-items: center; padding: 20px; }
     .auth-card { background: #1e293b; width: 100%; max-width: 400px; padding: 25px; border-radius: 20px; border: 1px solid var(--card-border); text-align: center; }
     .auth-input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 14px; outline: none; }
     .auth-btn { width: 100%; padding: 12px; background: var(--green-3d); border: none; border-radius: 10px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
     .auth-toggle { margin-top: 15px; font-size: 13px; color: #60a5fa; cursor: pointer; text-decoration: underline; }
 
-    /* Header */
     .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--card-border); margin-bottom: 12px; }
     .brand-title { font-size: 20px; font-weight: 900; background: linear-gradient(90deg, #f39c12, #f1c40f); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
-    /* Wallet Card */
     .wallet-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 16px; text-align: center; backdrop-filter: blur(10px); }
     .balance-val { font-size: 28px; font-weight: 800; color: #f1c40f; margin: 6px 0 14px; }
     .wallet-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -80,24 +53,19 @@
     .btn-3d { border: none; padding: 12px; border-radius: 14px; color: white; font-weight: bold; font-size: 14px; cursor: pointer; position: relative; }
     .btn-withdraw { background: var(--red-3d); box-shadow: 0 4px 0 #b91c1c; }
     .btn-deposit { background: var(--green-3d); box-shadow: 0 4px 0 #047857; }
-    .btn-history-log { background: var(--blue-3d); box-shadow: 0 4px 0 #1d4ed8; margin-top: 10px; width: 100%; padding: 8px; font-size: 12px; }
 
-    /* Modes */
     .modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 15px 0 10px; }
     .mode-item { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 10px 4px; text-align: center; color: #94a3b8; font-size: 11px; font-weight: 600; cursor: pointer; }
     .mode-item.active { background: #2563eb; color: white; border: 1px solid #60a5fa; }
 
-    /* Timer Ticket Card */
     .ticket-card { background: linear-gradient(135deg, #1e1b4b, #312e81); border-radius: 16px; padding: 14px 18px; color: white; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #4338ca; }
     .time-digits { background: #020617; color: #ef4444; font-size: 20px; font-weight: 900; padding: 6px 12px; border-radius: 8px; border: 1px solid #dc2626; font-family: monospace; }
 
-    /* 3D Betting Controls */
     .color-section { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
     .btn-color-green { background: var(--green-3d); box-shadow: 0 5px 0 #047857; }
     .btn-color-violet { background: var(--violet-3d); box-shadow: 0 5px 0 #6b21a8; }
     .btn-color-red { background: var(--red-3d); box-shadow: 0 5px 0 #b91c1c; }
 
-    /* 3D Ball Grid */
     .grid-balls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; background: var(--card-bg); padding: 16px; border-radius: 20px; border: 1px solid var(--card-border); margin-bottom: 15px; }
     .ball-3d { aspect-ratio: 1; border-radius: 50%; border: none; font-size: 20px; font-weight: 900; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
     .ball-0 { background: radial-gradient(circle at 35% 35%, #c084fc, #7e22ce); box-shadow: 0 6px 0 #581c87; }
@@ -109,7 +77,6 @@
     .btn-big { background: var(--orange-3d); box-shadow: 0 5px 0 #c2410c; }
     .btn-small { background: var(--blue-3d); box-shadow: 0 5px 0 #1d4ed8; }
 
-    /* History Section */
     .history-card { background: var(--card-bg); border-radius: 20px; padding: 14px; border: 1px solid var(--card-border); }
     .tab-header { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 12px; }
     .tab-btn { padding: 10px; border-radius: 10px; border: none; background: rgba(255,255,255,0.05); color: #94a3b8; font-weight: bold; font-size: 12px; cursor: pointer; }
@@ -120,169 +87,40 @@
     td { padding: 10px 4px; border-bottom: 1px solid rgba(255,255,255,0.03); color: #cbd5e1; }
     .res-ball { display: inline-block; width: 22px; height: 22px; line-height: 22px; border-radius: 50%; color: white; font-weight: bold; font-size: 11px; }
 
-    /* Modals System */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: flex-end; z-index: 1000; backdrop-filter: blur(5px); }
     .modal-content { background: #1e293b; border-top-left-radius: 24px; border-top-right-radius: 24px; width: 100%; max-width: 480px; padding: 20px; border-top: 1px solid var(--card-border); color: white; max-height: 85vh; overflow-y: auto; }
     .modal-title { font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 15px; color: #f1c40f; }
-    .form-input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; margin-bottom: 12px; font-size: 14px; }
-    .btn-submit { width: 100%; padding: 14px; background: var(--green-3d); border: none; border-radius: 12px; color: white; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 10px; }
-    .btn-close { width: 100%; padding: 12px; background: #475569; border: none; border-radius: 12px; color: white; font-weight: bold; margin-top: 8px; cursor: pointer; }
 
-    /* Chips */
     .chips { display: flex; gap: 8px; margin: 10px 0; }
     .chip { flex: 1; padding: 8px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; text-align: center; font-size: 12px; cursor: pointer; }
     .chip.active { background: var(--orange-3d); border-color: #f97316; }
 
-    /* ==========================================
-       GAME RESULT POPUP MODAL (WIN/LOSS BANNER)
-       ========================================== */
     #resultModalOverlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.75);
-      z-index: 5000;
-      display: none;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-      backdrop-filter: blur(4px);
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); z-index: 5000; display: none; justify-content: center; align-items: center; padding: 20px; backdrop-filter: blur(4px);
     }
-
     .result-card {
-      width: 100%;
-      max-width: 340px;
-      border-radius: 28px;
-      background: linear-gradient(180deg, #ff6b4a 0%, #ff3b30 40%, #e0241b 100%);
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.4);
-      padding: 24px 20px 20px;
-      text-align: center;
-      position: relative;
-      animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-      color: white;
+      width: 100%; max-width: 340px; border-radius: 28px; background: linear-gradient(180deg, #ff6b4a 0%, #ff3b30 40%, #e0241b 100%); box-shadow: 0 20px 40px rgba(0,0,0,0.6); padding: 24px 20px 20px; text-align: center; position: relative; color: white;
     }
-
-    .result-card.loss {
-      background: linear-gradient(180deg, #64748b 0%, #334155 40%, #1e293b 100%);
-    }
-
-    @keyframes popIn {
-      0% { opacity: 0; transform: scale(0.6) translateY(50px); }
-      100% { opacity: 1; transform: scale(1) translateY(0); }
-    }
-
-    /* Top Rocket Badge */
-    .result-badge {
-      width: 70px;
-      height: 70px;
-      background: linear-gradient(135deg, #ffe066, #f59e0b);
-      border-radius: 50%;
-      margin: 0 auto -10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 36px;
-      box-shadow: 0 6px 15px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.8);
-      border: 3px solid #fff;
-    }
-
-    .result-title {
-      font-size: 20px;
-      font-weight: 900;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      margin-top: 15px;
-      margin-bottom: 12px;
-      line-height: 1.3;
-    }
-
-    /* Result Details Pills */
-    .result-info-box {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      margin-bottom: 15px;
-      font-size: 13px;
-    }
-
-    .info-pill {
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-weight: bold;
-      font-size: 12px;
-      color: white;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
+    .result-card.loss { background: linear-gradient(180deg, #64748b 0%, #334155 40%, #1e293b 100%); }
+    .result-badge { width: 70px; height: 70px; background: linear-gradient(135deg, #ffe066, #f59e0b); border-radius: 50%; margin: 0 auto -10px; display: flex; align-items: center; justify-content: center; font-size: 36px; border: 3px solid #fff; }
+    .result-title { font-size: 20px; font-weight: 900; margin-top: 15px; margin-bottom: 12px; }
+    .result-info-box { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 15px; font-size: 13px; }
+    .info-pill { padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 12px; color: white; }
     .pill-green { background: #10b981; }
-    .pill-red { background: #ef4444; }
     .pill-num { background: #0f172a; border: 1px solid rgba(255,255,255,0.2); width: 26px; height: 26px; line-height: 24px; border-radius: 50%; text-align: center; }
-
-    /* Bonus Coupon Ticket */
-    .bonus-ticket {
-      background: #ffffff;
-      color: #1e293b;
-      border-radius: 16px;
-      padding: 12px 10px;
-      position: relative;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.25);
-      margin-bottom: 12px;
-    }
-    .bonus-ticket::before, .bonus-ticket::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      width: 12px;
-      height: 12px;
-      background: #e0241b;
-      border-radius: 50%;
-      transform: translateY(-50%);
-    }
-    .result-card.loss .bonus-ticket::before, 
-    .result-card.loss .bonus-ticket::after {
-      background: #1e293b;
-    }
-    .bonus-ticket::before { left: -6px; }
-    .bonus-ticket::after { right: -6px; }
-
-    .bonus-label { font-size: 12px; color: #f97316; font-weight: bold; margin-bottom: 2px; }
+    .bonus-ticket { background: #ffffff; color: #1e293b; border-radius: 16px; padding: 12px 10px; margin-bottom: 12px; }
+    .bonus-label { font-size: 12px; color: #f97316; font-weight: bold; }
     .bonus-amount { font-size: 26px; font-weight: 900; color: #dc2626; }
-    .bonus-period { font-size: 10px; color: #64748b; margin-top: 4px; }
-
-    /* Auto Close Radio Check */
-    .auto-close-txt {
-      font-size: 12px;
-      opacity: 0.9;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      margin-top: 10px;
-    }
-
-    /* Close Button (X) */
-    .close-btn-circle {
-      position: absolute;
-      bottom: -55px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 38px;
-      height: 38px;
-      border: 2px solid #ffffff;
-      border-radius: 50%;
-      color: white;
-      font-size: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      background: rgba(0,0,0,0.3);
-    }
+    .close-btn-circle { position: absolute; bottom: -55px; left: 50%; transform: translateX(-50%); width: 38px; height: 38px; border: 2px solid #ffffff; border-radius: 50%; color: white; font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; background: rgba(0,0,0,0.3); }
+    .btn-submit { width: 100%; padding: 14px; background: var(--green-3d); border: none; border-radius: 12px; color: white; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 10px; }
+    .btn-close { width: 100%; padding: 12px; background: #475569; border: none; border-radius: 12px; color: white; font-weight: bold; margin-top: 8px; cursor: pointer; }
   </style>
 </head>
 <body>
 
 <div id="toastContainer"></div>
 
-<!-- Login / Register Overlay -->
+<!-- Auth Overlay -->
 <div id="authOverlay">
   <div class="auth-card">
     <h2 id="authTitle" style="color:#f1c40f; margin-bottom: 15px;">Lucky Lottery Login</h2>
@@ -296,23 +134,20 @@
 </div>
 
 <div class="app">
-  <!-- Header -->
   <div class="header">
     <div class="brand-title">🎰 Lucky Lottery</div>
     <div id="userDisplay" style="font-size: 13px; color: #94a3b8;">Guest</div>
   </div>
 
-  <!-- Wallet Card -->
   <div class="wallet-card">
     <div style="font-size: 13px; color: #94a3b8;">Wallet balance 🔄</div>
     <div class="balance-val" id="balanceDisplay">K0.00</div>
     <div class="wallet-btns">
-      <button class="btn-3d btn-withdraw" onclick="openWithdrawModal()">Withdraw</button>
-      <button class="btn-3d btn-deposit" onclick="openDepositModal()">Deposit</button>
+      <button class="btn-3d btn-withdraw" onclick="showToast('Withdraw မကြာမီ ရနိုင်မည်', 'info')">Withdraw</button>
+      <button class="btn-3d btn-deposit" onclick="showToast('Deposit ပြုလုပ်ရန် Admin သို့ ဆက်သွယ်ပါ', 'info')">Deposit</button>
     </div>
   </div>
 
-  <!-- Modes -->
   <div class="modes">
     <div class="mode-item active">Win Go 30s</div>
     <div class="mode-item">Win Go 1Min</div>
@@ -320,7 +155,6 @@
     <div class="mode-item">Win Go 5Min</div>
   </div>
 
-  <!-- Timer Card -->
   <div class="ticket-card">
     <div>
       <div style="font-size: 14px; font-weight: bold;">Win Go 30s</div>
@@ -332,14 +166,12 @@
     </div>
   </div>
 
-  <!-- 3D Color Buttons -->
   <div class="color-section">
     <button class="btn-3d btn-color-green" onclick="openBetModal('color', 'GREEN')">Green</button>
     <button class="btn-3d btn-color-violet" onclick="openBetModal('color', 'VIOLET')">Violet</button>
     <button class="btn-3d btn-color-red" onclick="openBetModal('color', 'RED')">Red</button>
   </div>
 
-  <!-- 3D Number Balls Grid -->
   <div class="grid-balls">
     <button class="ball-3d ball-0" onclick="openBetModal('number', 0)">0</button>
     <button class="ball-3d ball-green" onclick="openBetModal('number', 1)">1</button>
@@ -353,17 +185,14 @@
     <button class="ball-3d ball-green" onclick="openBetModal('number', 9)">9</button>
   </div>
 
-  <!-- 3D Size Buttons -->
   <div class="size-section">
     <button class="btn-3d btn-big" onclick="openBetModal('size', 'BIG')">Big</button>
     <button class="btn-3d btn-small" onclick="openBetModal('size', 'SMALL')">Small</button>
   </div>
 
-  <!-- History Section -->
   <div class="history-card">
     <div class="tab-header">
-      <button class="tab-btn active" id="tabGame" onclick="switchTab('game')">Game history</button>
-      <button class="tab-btn" id="tabMy" onclick="switchTab('my')">My history</button>
+      <button class="tab-btn active" id="tabGame">Game history</button>
     </div>
 
     <table id="gameHistoryTable">
@@ -377,24 +206,9 @@
       </thead>
       <tbody id="gameHistoryBody"></tbody>
     </table>
-
-    <div id="myHistoryArea" style="display: none; text-align: center;">
-      <table>
-        <thead>
-          <tr>
-            <th>Period</th>
-            <th>Bet</th>
-            <th>Amount</th>
-            <th>Result</th>
-          </tr>
-        </thead>
-        <tbody id="myHistoryBody"></tbody>
-      </table>
-    </div>
   </div>
 </div>
 
-<!-- GAME RESULT POPUP MODAL (Congratulations / Loss UI) -->
 <div id="resultModalOverlay">
   <div class="result-card" id="resCard">
     <div class="result-badge" id="resBadge">🚀</div>
@@ -409,20 +223,14 @@
 
     <div class="bonus-ticket">
       <div class="bonus-label">ဘောနပ်စ်</div>
-      <div class="bonus-amount" id="resBonusAmt">K3,704.40</div>
-      <div class="bonus-period" id="resPeriodText">ပွဲအမှတ်စဉ် Win 30s 20250805100010054</div>
-    </div>
-
-    <div class="auto-close-txt">
-      <span style="display:inline-block; width:12px; height:12px; border-radius:50%; border:2px solid #fff; background:#fff;"></span>
-      <span id="autoCloseSec">၃ စက္ကန့် အလိုအလျောက် ပိတ်သည်။</span>
+      <div class="bonus-amount" id="resBonusAmt">K0.00</div>
+      <div class="bonus-period" id="resPeriodText">ပွဲအမှတ်စဉ် Win 30s</div>
     </div>
 
     <div class="close-btn-circle" onclick="closeResultModal()">✕</div>
   </div>
 </div>
 
-<!-- Bet Modal Drawer -->
 <div class="modal-overlay" id="betDrawer">
   <div class="modal-content">
     <div class="modal-title">Win Go 30s - Select <span id="selectedItem" style="color:#f97316;">Big</span></div>
@@ -451,8 +259,6 @@
   let currentUser = null;
   let activeBet = { type: '', value: '', baseAmt: 1000, qty: 1 };
   let gameHistory = [];
-  let myBets = [];
-  let autoCloseTimer = null;
 
   function showToast(message, type = 'info') {
     const container = document.getElementById('toastContainer');
@@ -462,6 +268,17 @@
     container.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
   }
+
+  // Check LocalStorage on startup (Auto Login feature)
+  window.addEventListener('load', () => {
+    const savedUser = localStorage.getItem('lottery_user');
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        socket.emit('user_login', parsed);
+      } catch(e) {}
+    }
+  });
 
   function toggleAuthMode() {
     isRegisterMode = !isRegisterMode;
@@ -480,11 +297,13 @@
   socket.on('auth_response', (res) => {
     if (res.success) {
       currentUser = res.user;
+      localStorage.setItem('lottery_user', JSON.stringify({ phone: res.user.phone, pass: res.user.pass }));
       document.getElementById('userDisplay').innerText = currentUser.phone;
       document.getElementById('authOverlay').style.display = 'none';
       updateBalanceUI();
       showToast(res.message, 'success');
     } else {
+      localStorage.removeItem('lottery_user');
       showToast(res.message, 'error');
     }
   });
@@ -522,15 +341,10 @@
     renderGameHistory();
   });
 
-  // ==========================================
-  // RECEIVE BET RESULT & SHOW WIN/LOSS MODAL
-  // ==========================================
   socket.on('user_bet_settled', (res) => {
     if (currentUser && res.phone === currentUser.phone) {
       currentUser.balance = res.newBalance;
       updateBalanceUI();
-
-      // Popup Result Banner ပြသခြင်း
       showResultModal(res);
     }
   });
@@ -541,18 +355,15 @@
     const title = document.getElementById('resTitle');
     const badge = document.getElementById('resBadge');
     const bonusAmt = document.getElementById('resBonusAmt');
-    const periodText = document.getElementById('resPeriodText');
 
     const lastResult = gameHistory[0] || {};
 
-    // Color text UI
     let colorText = lastResult.color === 'green' ? 'အစိမ်းရောင်' : (lastResult.color === 'red' ? 'အနီရောင်' : 'ခရမ်းရောင်');
     let sizeText = lastResult.size === 'BIG' ? 'အကြီး' : 'အသေး';
 
     document.getElementById('resColorPill').innerText = colorText;
     document.getElementById('resNumPill').innerText = lastResult.number !== undefined ? lastResult.number : '-';
     document.getElementById('resSizePill').innerText = sizeText;
-    periodText.innerText = `ပွဲအမှတ်စဉ် Win 30s ${data.period}`;
 
     if (data.win) {
       card.classList.remove('loss');
@@ -567,24 +378,10 @@
     }
 
     overlay.style.display = 'flex';
-
-    // 3 Seconds Auto Close Countdown
-    let timeLeft = 3;
-    document.getElementById('autoCloseSec').innerText = `${timeLeft} စက္ကန့် အလိုအလျောက် ပိတ်သည်။`;
-
-    clearInterval(autoCloseTimer);
-    autoCloseTimer = setInterval(() => {
-      timeLeft--;
-      if (timeLeft > 0) {
-        document.getElementById('autoCloseSec').innerText = `${timeLeft} စက္ကန့် အလိုအလျောက် ပိတ်သည်။`;
-      } else {
-        closeResultModal();
-      }
-    }, 1000);
+    setTimeout(closeResultModal, 3000);
   }
 
   function closeResultModal() {
-    clearInterval(autoCloseTimer);
     document.getElementById('resultModalOverlay').style.display = 'none';
   }
 
@@ -652,4 +449,4 @@
   }
 </script>
 </body>
-</html>
+</html>').innerText = lastResult.number !== undefined ? lastResult.number : '-'
