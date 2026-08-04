@@ -22,7 +22,50 @@
     
     .app { width: 100%; max-width: 480px; min-height: 100vh; background: var(--bg-main); padding: 12px; position: relative; padding-bottom: 40px; }
 
-    /* Auth / Login Gate Overlay */
+    /* Custom Toast Notification UI System */
+    #toastContainer {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      width: 90%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .toast-box {
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      padding: 14px 18px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: slideDown 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+      pointer-events: auto;
+    }
+    .toast-box.info { border-left: 5px solid #3b82f6; }
+    .toast-box.success { border-left: 5px solid #10b981; }
+    .toast-box.error { border-left: 5px solid #ef4444; }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-30px) scale(0.9); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(-20px); }
+    }
+
+    /* Auth / Login Overlay */
     #authOverlay { position: fixed; inset: 0; background: #0f172a; z-index: 2000; display: flex; justify-content: center; align-items: center; padding: 20px; }
     .auth-card { background: #1e293b; width: 100%; max-width: 400px; padding: 25px; border-radius: 20px; border: 1px solid var(--card-border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; }
     .auth-input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 14px; outline: none; }
@@ -38,14 +81,13 @@
     .balance-val { font-size: 28px; font-weight: 800; color: #f1c40f; margin: 6px 0 14px; }
     .wallet-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     
-    /* 3D Buttons Style */
     .btn-3d { border: none; padding: 12px; border-radius: 14px; color: white; font-weight: bold; font-size: 14px; cursor: pointer; transition: all 0.1s ease; position: relative; }
     .btn-3d:active { transform: translateY(3px); box-shadow: none !important; }
     .btn-withdraw { background: var(--red-3d); box-shadow: 0 4px 0 #b91c1c; }
     .btn-deposit { background: var(--green-3d); box-shadow: 0 4px 0 #047857; }
     .btn-history-log { background: var(--blue-3d); box-shadow: 0 4px 0 #1d4ed8; margin-top: 10px; width: 100%; padding: 8px; font-size: 12px; }
 
-    /* Game Modes */
+    /* Modes */
     .modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 15px 0 10px; }
     .mode-item { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 10px 4px; text-align: center; color: #94a3b8; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid transparent; }
     .mode-item.active { background: #2563eb; color: white; border-color: #60a5fa; box-shadow: 0 0 10px rgba(37, 99, 235, 0.5); }
@@ -76,7 +118,7 @@
 
     /* History Section */
     .history-card { background: var(--card-bg); border-radius: 20px; padding: 14px; border: 1px solid var(--card-border); }
-    .tab-header { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+    .tab-header { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 12px; }
     .tab-btn { padding: 10px; border-radius: 10px; border: none; background: rgba(255,255,255,0.05); color: #94a3b8; font-weight: bold; font-size: 12px; cursor: pointer; }
     .tab-btn.active { background: #2563eb; color: white; }
 
@@ -109,6 +151,9 @@
   </style>
 </head>
 <body>
+
+<!-- Custom Toast Notifications Box -->
+<div id="toastContainer"></div>
 
 <!-- Login / Register Overlay -->
 <div id="authOverlay">
@@ -308,6 +353,28 @@
   let myBets = [];
   let txLogs = [];
 
+  // ==========================================
+  // CUSTOM TOAST NOTIFICATION FUNCTION
+  // ==========================================
+  function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    
+    let icon = '🔔';
+    if(type === 'success') icon = '✅';
+    if(type === 'error') icon = '⚠️';
+
+    toast.className = `toast-box ${type}`;
+    toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+    
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.animation = 'fadeOut 0.3s forwards';
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+
   window.onload = () => {
     const savedPhone = localStorage.getItem('ll_saved_phone');
     const savedPass = localStorage.getItem('ll_saved_pass');
@@ -328,7 +395,7 @@
     const phone = document.getElementById('loginUsername').value.trim();
     const pass = document.getElementById('loginPassword').value.trim();
 
-    if (!phone || !pass) return alert('ကျေးဇူးပြု၍ ဖုန်းနံပါတ် သို့ အကောင့်အမည် နှင့် စကားဝှက် ရိုက်ထည့်ပါ');
+    if (!phone || !pass) return showToast('ဖုန်းနံပါတ်/အကောင့်အမည် နှင့် စကားဝှက် ဖြည့်ပါ', 'error');
 
     if (isRegisterMode) {
       socket.emit('user_register', { phone, pass });
@@ -346,9 +413,9 @@
       document.getElementById('userDisplay').innerText = currentUser.phone;
       document.getElementById('authOverlay').style.display = 'none';
       updateBalanceUI();
-      alert(res.message);
+      showToast(res.message, 'success');
     } else {
-      alert(res.message);
+      showToast(res.message, 'error');
     }
   });
 
@@ -372,7 +439,7 @@
   });
 
   socket.on('bet_response', (res) => {
-    alert(res.message);
+    showToast(res.message, res.success ? 'success' : 'error');
     if (res.success && res.newBalance !== undefined) {
       currentUser.balance = res.newBalance;
       updateBalanceUI();
@@ -394,6 +461,10 @@
       currentUser.balance = res.newBalance;
       updateBalanceUI();
       renderMyHistory();
+
+      if (res.win) {
+        showToast(`ဂုဏ်ယူပါတယ်! K${res.winAmount.toLocaleString()} အနိုင်ရရှိပါသည်။`, 'success');
+      }
     }
   });
 
@@ -403,7 +474,6 @@
     }
   }
 
-  /* History Tabs */
   function switchTab(tab) {
     if(tab === 'game') {
       document.getElementById('tabGame').classList.add('active');
@@ -455,13 +525,11 @@
   }
 
   function clearMyHistory() {
-    if(confirm('မှတ်တမ်းများကို ဖျက်ရန် သေချာပါသလား?')) {
-      myBets = [];
-      renderMyHistory();
-    }
+    myBets = [];
+    renderMyHistory();
+    showToast('မှတ်တမ်းများကို ရှင်းထုတ်ပြီးပါပြီ', 'info');
   }
 
-  /* Modal Handlers */
   function closeModals() {
     document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
   }
@@ -471,7 +539,7 @@
   function openTxLogModal() { renderTxLogs(); document.getElementById('txLogModal').style.display = 'flex'; }
 
   function openBetModal(type, val) {
-    if(!currentUser) return alert('လော့ဂ်အင် အရင်ဝင်ပါ');
+    if(!currentUser) return showToast('လော့ဂ်အင် အရင်ဝင်ပါ', 'error');
     activeBet.type = type;
     activeBet.value = val;
     document.getElementById('selectedItem').innerText = val;
@@ -497,11 +565,10 @@
     document.getElementById('totalAmount').innerText = total.toLocaleString();
   }
 
-  /* Submissions */
   function submitBet() {
     const total = activeBet.baseAmt * activeBet.qty;
     if(currentUser.balance < total) {
-      alert('လက်ကျန်ငွေ မလုံလောက်ပါ! ကျေးဇူးပြု၍ ငွေထပ်သွင်းပါ။');
+      showToast('လက်ကျန်ငွေ မလုံလောက်ပါ! ကျေးဇူးပြု၍ ငွေထပ်သွင်းပါ။', 'error');
       return;
     }
 
@@ -526,26 +593,26 @@
   function submitDeposit() {
     const amt = document.getElementById('depAmount').value;
     const txId = document.getElementById('depTxId').value;
-    if(!amt || !txId) return alert('အချက်အလက်များကို ပြည့်စုံစွာ ဖြည့်စွက်ပါ');
+    if(!amt || !txId) return showToast('အချက်အလက်များကို ပြည့်စုံစွာ ဖြည့်စွက်ပါ', 'error');
 
     txLogs.unshift({ type: 'Deposit', amount: `K${amt}`, status: 'Pending ⏳' });
     closeModals();
-    alert('ငွေသွင်းလွှာ တင်ပြီးပါပြီ။ အေးဂျင့်မှ စစ်ဆေးပြီးပါက ဘေလ်ဝင်လာပါမည်။');
+    showToast('ငွေသွင်းလွှာ တင်ပြီးပါပြီ။ အေးဂျင့်မှ စစ်ဆေးပေးပါမည်။', 'success');
   }
 
   function submitWithdraw() {
     const phone = document.getElementById('wdPhone').value;
     const amt = parseFloat(document.getElementById('wdAmount').value);
 
-    if(!phone || !amt) return alert('အချက်အလက်များကို ပြည့်စုံစွာ ဖြည့်စွက်ပါ');
-    if(amt > currentUser.balance) return alert('ထုတ်ယူလိုသော ပမာဏသည် လက်ကျန်ငွေထက် များနေပါသည်။');
+    if(!phone || !amt) return showToast('အချက်အလက်များကို ပြည့်စုံစွာ ဖြည့်စွက်ပါ', 'error');
+    if(amt > currentUser.balance) return showToast('ထုတ်ယူလိုသော ပမာဏသည် လက်ကျန်ငွေထက် များနေပါသည်။', 'error');
 
     currentUser.balance -= amt;
     updateBalanceUI();
 
     txLogs.unshift({ type: 'Withdraw', amount: `K${amt}`, status: 'Pending ⏳' });
     closeModals();
-    alert('ငွေထုတ်လွှာ တင်ပြီးပါပြီ။ မကြာမီ စစ်ဆေး၍ လွှဲပေးပါမည်။');
+    showToast('ငွေထုတ်လွှာ တင်ပြီးပါပြီ။ မကြာမီ စစ်ဆေးပေးပါမည်။', 'success');
   }
 
   function renderTxLogs() {
