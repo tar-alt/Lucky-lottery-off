@@ -321,18 +321,14 @@ function calculateGameResult() {
     finalNumber = Math.floor(Math.random() * 10);
   }
 
-  // အရောင် ပိုမိုတိကျစွာ သတ်မှတ်ခြင်း
-  // 1,3,7,9 = GREEN
-  // 2,4,6,8 = RED
-  // 0 = VIOLET_RED (ခရမ်း + အနီ)
-  // 5 = VIOLET_GREEN (ခရမ်း + အစိမ်း)
+  // ရလဒ် အရောင်နှင့် ဆိုဒ် သတ်မှတ်ခြင်း (ဒီနေရာတွင် အနီ/အစိမ်း/ခရမ်း သီးသန့် ခွဲထုတ်ပေးလိုက်ပါသည်)
   let color = 'GREEN';
   if ([2, 4, 6, 8].includes(finalNumber)) {
     color = 'RED';
   } else if (finalNumber === 0) {
-    color = 'VIOLET_RED';
+    color = 'VIOLET_RED'; // 0 ဖြစ်လျှင် ခရမ်း+အနီ
   } else if (finalNumber === 5) {
-    color = 'VIOLET_GREEN';
+    color = 'VIOLET_GREEN'; // 5 ဖြစ်လျှင် ခရမ်း+အစိမ်း
   }
 
   let size = finalNumber >= 5 ? 'BIG' : 'SMALL';
@@ -384,7 +380,7 @@ function processPayouts(result) {
 
     betHistory.unshift(historyRecord);
 
-    // Pop-up ပြရန်နှင့် Balance Update အတွက် Data ပို့ခြင်း
+    // Pop-up ပြရန်နှင့် Balance Update အတွက် Data ပို့ခြင်း (အနိုင်/အရှုံး နှစ်ခုလုံး ပို့ပေးပါသည်)
     io.to(user.phone).emit('user_bet_settled', historyRecord);
     io.to(user.phone).emit('balance_sync', user.balance);
   });
@@ -433,4 +429,3 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Lucky Lottery server running on port ${PORT}`);
 });
-
