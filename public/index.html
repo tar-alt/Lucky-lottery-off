@@ -58,8 +58,16 @@
     .mode-item { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 10px 4px; text-align: center; color: #94a3b8; font-size: 11px; font-weight: 600; cursor: pointer; }
     .mode-item.active { background: #2563eb; color: white; border: 1px solid #60a5fa; }
 
-    .ticket-card { background: linear-gradient(135deg, #1e1b4b, #312e81); border-radius: 16px; padding: 14px 18px; color: white; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #4338ca; }
+    .ticket-card { background: linear-gradient(135deg, #1e1b4b, #312e81); border-radius: 16px; padding: 14px 18px; color: white; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #4338ca; }
     .time-digits { background: #020617; color: #ef4444; font-size: 20px; font-weight: 900; padding: 6px 12px; border-radius: 8px; border: 1px solid #dc2626; font-family: monospace; }
+
+    /* Bet Status Notification Bar */
+    .bet-status-bar { text-align: center; padding: 6px; border-radius: 8px; margin-bottom: 12px; font-weight: bold; font-size: 12px; }
+    .status-open { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid #10b981; }
+    .status-closed { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid #ef4444; }
+
+    /* Active Current Bets Box */
+    .current-bets-box { background: rgba(243, 156, 18, 0.1); border: 1px dashed #f39c12; border-radius: 12px; padding: 10px; margin-bottom: 15px; font-size: 12px; }
 
     .color-section { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
     .btn-color-green { background: var(--green-3d); box-shadow: 0 5px 0 #047857; }
@@ -78,8 +86,8 @@
     .btn-small { background: var(--blue-3d); box-shadow: 0 5px 0 #1d4ed8; }
 
     .history-card { background: var(--card-bg); border-radius: 20px; padding: 14px; border: 1px solid var(--card-border); }
-    .tab-header { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 12px; }
-    .tab-btn { padding: 10px; border-radius: 10px; border: none; background: rgba(255,255,255,0.05); color: #94a3b8; font-weight: bold; font-size: 12px; cursor: pointer; }
+    .tab-header { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
+    .tab-btn { padding: 10px; border-radius: 10px; border: none; background: rgba(255,255,255,0.05); color: #94a3b8; font-weight: bold; font-size: 12px; cursor: pointer; text-align: center; }
     .tab-btn.active { background: #2563eb; color: white; }
 
     table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; }
@@ -149,21 +157,29 @@
   </div>
 
   <div class="modes">
-    <div class="mode-item active">Win Go 30s</div>
-    <div class="mode-item">Win Go 1Min</div>
+    <div class="mode-item active">Win Go 1Min</div>
     <div class="mode-item">Win Go 3Min</div>
     <div class="mode-item">Win Go 5Min</div>
+    <div class="mode-item">Win Go 10Min</div>
   </div>
 
   <div class="ticket-card">
     <div>
-      <div style="font-size: 14px; font-weight: bold;">Win Go 30s</div>
+      <div style="font-size: 14px; font-weight: bold;">Win Go 1Min</div>
       <small id="periodDisplay" style="color:#94a3b8;">P: Loading...</small>
     </div>
     <div>
       <div style="font-size: 10px; text-align: right; color:#94a3b8; margin-bottom: 2px;">Time remaining</div>
-      <div class="time-digits" id="timerDisplay">00:30</div>
+      <div class="time-digits" id="timerDisplay">01:00</div>
     </div>
+  </div>
+
+  <div class="bet-status-bar status-open" id="betStatusBox">🟢 လောင်းကြေး တင်နိုင်ပါသေးသည်</div>
+
+  <!-- Active Bet Display Box -->
+  <div class="current-bets-box" id="currentBetBox" style="display:none;">
+    <div style="font-weight:bold; color:#f39c12; margin-bottom:4px;">🎯 လက်ရှိ ပွဲစဉ်အတွက် တင်ထားသော လောင်းကြေးများ:</div>
+    <div id="currentBetList"></div>
   </div>
 
   <div class="color-section">
@@ -192,20 +208,39 @@
 
   <div class="history-card">
     <div class="tab-header">
-      <button class="tab-btn active" id="tabGame">Game history</button>
+      <button class="tab-btn active" id="tabGame" onclick="switchTab('game')">Game history</button>
+      <button class="tab-btn" id="tabMy" onclick="switchTab('my')">My History (လောင်းကြေး)</button>
     </div>
 
-    <table id="gameHistoryTable">
-      <thead>
-        <tr>
-          <th>Period</th>
-          <th>Number</th>
-          <th>Big/Small</th>
-          <th>Color</th>
-        </tr>
-      </thead>
-      <tbody id="gameHistoryBody"></tbody>
-    </table>
+    <!-- Game History Table -->
+    <div id="gameHistoryView">
+      <table id="gameHistoryTable">
+        <thead>
+          <tr>
+            <th>Period</th>
+            <th>Number</th>
+            <th>Big/Small</th>
+            <th>Color</th>
+          </tr>
+        </thead>
+        <tbody id="gameHistoryBody"></tbody>
+      </table>
+    </div>
+
+    <!-- My History Table -->
+    <div id="myHistoryView" style="display:none;">
+      <table>
+        <thead>
+          <tr>
+            <th>Period</th>
+            <th>Bet</th>
+            <th>Amount</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody id="myHistoryBody"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -224,7 +259,7 @@
     <div class="bonus-ticket">
       <div class="bonus-label">ဘောနပ်စ်</div>
       <div class="bonus-amount" id="resBonusAmt">K0.00</div>
-      <div class="bonus-period" id="resPeriodText">ပွဲအမှတ်စဉ် Win 30s</div>
+      <div class="bonus-period" id="resPeriodText">ပွဲအမှတ်စဉ် Win 1Min</div>
     </div>
 
     <div class="close-btn-circle" onclick="closeResultModal()">✕</div>
@@ -233,7 +268,7 @@
 
 <div class="modal-overlay" id="betDrawer">
   <div class="modal-content">
-    <div class="modal-title">Win Go 30s - Select <span id="selectedItem" style="color:#f97316;">Big</span></div>
+    <div class="modal-title">Win Go 1Min - Select <span id="selectedItem" style="color:#f97316;">Big</span></div>
     <div style="margin-bottom: 10px; font-size:13px;">Balance Base:</div>
     <div class="chips">
       <div class="chip" onclick="setBaseAmt(10, this)">10</div>
@@ -259,6 +294,8 @@
   let currentUser = null;
   let activeBet = { type: '', value: '', baseAmt: 1000, qty: 1 };
   let gameHistory = [];
+  let myBetHistory = [];
+  let currentTimer = 60;
 
   function showToast(message, type = 'info') {
     const container = document.getElementById('toastContainer');
@@ -297,10 +334,12 @@
   socket.on('auth_response', (res) => {
     if (res.success) {
       currentUser = res.user;
+      myBetHistory = res.myBets || [];
       localStorage.setItem('lottery_user', JSON.stringify({ phone: res.user.phone, pass: res.user.pass }));
       document.getElementById('userDisplay').innerText = currentUser.phone;
       document.getElementById('authOverlay').style.display = 'none';
       updateBalanceUI();
+      renderMyHistory();
       showToast(res.message, 'success');
     } else {
       localStorage.removeItem('lottery_user');
@@ -315,9 +354,21 @@
   });
 
   socket.on('timer_update', (data) => {
-    let secs = data.timer < 10 ? '0' + data.timer : data.timer;
+    currentTimer = data.timer;
+    let secs = currentTimer < 10 ? '0' + currentTimer : currentTimer;
     document.getElementById('timerDisplay').innerText = `00:${secs}`;
     document.getElementById('periodDisplay').innerText = `P: ${data.period}`;
+
+    // 10s ရောက်ပါက လောင်းကြေးပိတ်ခြင်း Visual ထည့်သွင်းထားသည်
+    const statusBox = document.getElementById('betStatusBox');
+    if (currentTimer <= 10) {
+      statusBox.className = "bet-status-bar status-closed";
+      statusBox.innerText = "🔴 လောင်းကြေး ခေတ္တပိတ်ထားပါသည် (10s ကန့်သတ်ချက်)";
+      closeModals();
+    } else {
+      statusBox.className = "bet-status-bar status-open";
+      statusBox.innerText = "🟢 လောင်းကြေး တင်နိုင်ပါသေးသည်";
+    }
   });
 
   socket.on('balance_sync', (newBalance) => {
@@ -329,22 +380,41 @@
 
   socket.on('bet_response', (res) => {
     showToast(res.message, res.success ? 'success' : 'error');
-    if (res.success && res.newBalance !== undefined) {
-      currentUser.balance = res.newBalance;
+    if (res.success) {
+      if (res.newBalance !== undefined) currentUser.balance = res.newBalance;
       updateBalanceUI();
+
+      if (res.myCurrentBets) {
+        renderCurrentBets(res.myCurrentBets);
+      }
     }
   });
+
+  function renderCurrentBets(bets) {
+    const box = document.getElementById('currentBetBox');
+    const list = document.getElementById('currentBetList');
+    if (bets && bets.length > 0) {
+      box.style.display = 'block';
+      list.innerHTML = bets.map(b => `<span style="background:#0f172a; padding:2px 8px; border-radius:6px; margin-right:5px; font-weight:bold;">${b.betType} - K${b.amount.toLocaleString()}</span>`).join(' ');
+    } else {
+      box.style.display = 'none';
+      list.innerHTML = '';
+    }
+  }
 
   socket.on('game_result', (res) => {
     gameHistory.unshift(res);
     if (gameHistory.length > 50) gameHistory.pop();
     renderGameHistory();
+    renderCurrentBets([]); // Clear active bets UI on round finished
   });
 
   socket.on('user_bet_settled', (res) => {
     if (currentUser && res.phone === currentUser.phone) {
       currentUser.balance = res.newBalance;
       updateBalanceUI();
+      myBetHistory.unshift(res);
+      renderMyHistory();
       showResultModal(res);
     }
   });
@@ -378,7 +448,7 @@
     }
 
     overlay.style.display = 'flex';
-    setTimeout(closeResultModal, 3000);
+    setTimeout(closeResultModal, 4000);
   }
 
   function closeResultModal() {
@@ -406,8 +476,32 @@
     }).join('');
   }
 
+  function renderMyHistory() {
+    const tbody = document.getElementById('myHistoryBody');
+    tbody.innerHTML = myBetHistory.map(b => {
+      let winText = b.win ? `<span style="color:#10b981; font-weight:bold;">+K${b.winAmount.toLocaleString()}</span>` : `<span style="color:#ef4444; font-weight:bold;">-K${b.amount.toLocaleString()}</span>`;
+      return `
+        <tr>
+          <td>${b.period}</td>
+          <td style="font-weight:bold; color:#f1c40f;">${b.betType}</td>
+          <td>K${b.amount.toLocaleString()}</td>
+          <td>${winText}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function switchTab(tab) {
+    document.getElementById('tabGame').classList.toggle('active', tab === 'game');
+    document.getElementById('tabMy').classList.toggle('active', tab === 'my');
+    document.getElementById('gameHistoryView').style.display = tab === 'game' ? 'block' : 'none';
+    document.getElementById('myHistoryView').style.display = tab === 'my' ? 'block' : 'none';
+  }
+
   function openBetModal(type, val) {
     if(!currentUser) return showToast('လော့ဂ်အင် အရင်ဝင်ပါ', 'error');
+    if(currentTimer <= 10) return showToast('10 စက္ကန့်အောက် ရောက်နေသဖြင့် လောင်းကြေးတင်၍ မရပါ', 'error');
+
     activeBet.type = type;
     activeBet.value = val;
     document.getElementById('selectedItem').innerText = val;
@@ -433,6 +527,11 @@
   }
 
   function submitBet() {
+    if(currentTimer <= 10) {
+      showToast('10 စက္ကန့်အောက် ရောက်နေသဖြင့် လောင်းကြေး ပိတ်သွားပါပြီ', 'error');
+      return closeModals();
+    }
+
     const total = activeBet.baseAmt * activeBet.qty;
     if(currentUser.balance < total) return showToast('လက်ကျန်ငွေ မလုံလောက်ပါ', 'error');
 
