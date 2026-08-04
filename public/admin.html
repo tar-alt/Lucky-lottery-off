@@ -153,6 +153,7 @@
 <script>
   const socket = io();
 
+  // Admin စဖွင့်တာနဲ့ Data တောင်းမည်
   socket.emit('admin_init');
 
   socket.on('admin_data', (data) => {
@@ -163,24 +164,43 @@
     }
   });
 
-  // Second နဲ့ Period Sync လုပ်ခြင်း
-  socket.on('game_tick', (data) => {
-    document.getElementById('gameTimer').innerText = `00:${data.timer < 10 ? '0' : ''}${data.timer}`;
-    document.getElementById('currentPeriodId').innerText = data.periodId;
+  // Server ကနေ ၁ စက္ကန့်တိုင်း ပို့ပေးမယ့် Timer & Stats Update ကို ဖမ်းယူခြင်း
+  socket.on('admin_stats_update', (data) => {
+    // အချိန် (Seconds) ကို 00:00 ပုံစံ ပြောင်းပေးခြင်း
+    if (data.timer !== undefined) {
+      const sec = data.timer < 10 ? '0' + data.timer : data.timer;
+      document.getElementById('gameTimer').innerText = `00:${sec}`;
+    }
+
+    // ပွဲစဉ် ID ကို ပြပေးခြင်း
+    if (data.period) {
+      document.getElementById('currentPeriodId').innerText = data.period;
+    }
+
+    // Online Users
+    if (data.onlineCount !== undefined) {
+      document.getElementById('onlineUsersCount').innerText = data.onlineCount;
+    }
+
+    // အများဆုံး လောင်းကြေး စာရင်း
+    if (data.topBetInfo) {
+      document.getElementById('liveBetStats').innerText = data.topBetInfo;
+    }
+
+    // User စာရင်း Update
+    if (data.users) {
+      renderUserList(data.users);
+    }
   });
 
-  socket.on('update_online_users', (count) => {
-    document.getElementById('onlineUsersCount').innerText = count;
-  });
-
-  socket.on('update_bet_stats', (statsText) => {
-    document.getElementById('liveBetStats').innerText = statsText || 'လောင်းကြေးမရှိပါ';
+  // Admin Toast Message သတိပေးချက်များ
+  socket.on('admin_toast', (msg) => {
+    alert(msg);
   });
 
   function setTargetResult() {
     const selectedVal = document.getElementById('targetResultSelect').value;
-    socket.emit('admin_set_target', selectedVal);
-    alert('ကျမည့်နံပါတ်ကို ' + selectedVal + ' အဖြစ် သတ်မှတ်လိုက်ပါပြီ။');
+    socket.emit('admin_set_target_result', { target: selectedVal });
   }
 
   function updateUserBalance() {
@@ -190,24 +210,23 @@
     socket.emit('admin_update_balance', { phone, amount });
   }
 
-  // Account ဖျက်ရန်
   function deleteUser(phone) {
-    if (confirm(`${phone} အကောင့်အား စနစ်ထဲမှ အပြီးတိုင် ဖျက်ပစ်ရန် သေချာပါသလား?`)) {
+    if (confirm(`${phone} အကောင့်အား အပြီးတိုင် ဖျက်ပစ်ရန် သေချာပါသလား?`)) {
       socket.emit('admin_delete_user', phone);
     }
   }
 
-  socket.on('balance_update_response', (res) => {
-    alert(res.message);
-    if(res.success) renderUserList(res.users);
-  });
-
   function renderUserList(users) {
     const tbody = document.getElementById('userListTableBody');
-    tbody.innerHTML = users.map(u => `
+    if (!tbody) return;
+
+    // Object သို့မဟုတ် Array ပုံစံ၂ မျိုးလုံး အလုပ်လုပ်အောင် ထိန်းထားခြင်း
+    const userArray = Array.isArray(users) ? users : Object.values(users);
+
+    tbody.innerHTML = userArray.map(u => `
       <tr>
         <td class="phone-col">${u.phone}</td>
-        <td class="balance-col">K${u.balance.toLocaleString('en-US')}</td>
+        <td class="balance-col">K${(u.balance || 0).toLocaleString('en-US')}</td>
         <td class="action-col">
           <button class="btn-delete" onclick="deleteUser('${u.phone}')">Delete</button>
         </td>
@@ -215,6 +234,3 @@
     `).join('');
   }
 </script>
-</body>
-</html>
-
