@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -9,12 +10,40 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Data Persistence (File Storage)
+const DATA_FILE = path.join(__dirname, 'game_data.json');
+
 let manualTargetResult = "AUTO"; 
 let users = {};         
 let currentBets = [];   
-let gameSeconds = 30;
-let gamePeriod = 1;
+let gameSeconds = 60; // 1 မိနစ် (60s)
+let gamePeriod = 10001;
 let gameHistory = [];
+let betHistory = []; // All individual user bets history
+
+// Load data from file if exists
+if (fs.existsSync(DATA_FILE)) {
+  try {
+    const savedData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    users = savedData.users || {};
+    gameHistory = savedData.gameHistory || [];
+    betHistory = savedData.betHistory || [];
+    if (gameHistory.length > 0) {
+      gamePeriod = parseInt(gameHistory[0].period) + 1;
+    }
+    console.log("--> Data loaded from game_data.json");
+  } catch (e) {
+    console.log("--> Error loading stored data");
+  }
+}
+
+function saveData() {
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify({ users, gameHistory, betHistory }, null, 2));
+  } catch(e) {
+    console.log("--> Error saving data:", e);
+  }
+}
 
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
@@ -54,8 +83,10 @@ io.on('connection', (socket) => {
       });
     }
 
-    // Assign socket ID to track single user room
     socket.join(phone);
+
+    // User ရဲ့ Personal Bet History ကို ပြန်ထုတ်ပေးခြင်း
+    const myBets = betHistory.filter(b => b.phone === phone);
 
     socket.emit('auth_response', {
       success: true,
@@ -64,7 +95,8 @@ io.on('connection', (socket) => {
         phone: user.phone,
         pass: user.pass,
         balance: user.balance || 0
-      }
+      },
+      myBets: myBets
     });
   });
 
@@ -89,12 +121,14 @@ io.on('connection', (socket) => {
     }
 
     users[phone] = { phone: phone, pass: pass, balance: 0 };
+    saveData();
     socket.join(phone);
 
     socket.emit('auth_response', {
       success: true,
       message: 'Register အောင်မြင်ပါတယ်',
-      user: { phone: phone, pass: pass, balance: 0 }
+      user: { phone: phone, pass: pass, balance: 0 },
+      myBets: []
     });
 
     sendAdminStats();
@@ -129,31 +163,37 @@ io.on('connection', (socket) => {
       });
     }
 
-    if (gameSeconds <= 5) {
+    // 10 စက္ကန့် ရောက်တာနဲ့ လောင်းကြေး အကုန်ပိတ်မည်
+    if (gameSeconds <= 10) {
       return socket.emit('bet_response', {
         success: false,
-        message: 'ပွဲစဉ်ပိတ်ခါနီးဖြစ်၍ လောင်းကြေး ပိတ်ထားပါသည်။'
+        message: 'ပွဲစဉ်ပိတ်ခါနီး (10s အောက်) ဖြစ်၍ လောင်းကြေး ပိတ်ထားပါသည်။'
       });
     }
 
     user.balance -= betAmount;
+    saveData();
 
-    currentBets.push({
+    const newBet = {
       phone: phone,
       betType: String(betType).toUpperCase(),
       amount: betAmount,
-      period: String(gamePeriod)
-    });
+      period: String(gamePeriod),
+      timestamp: new Date().toLocaleTimeString()
+    };
+
+    currentBets.push(newBet);
+
+    const myCurrentBets = currentBets.filter(b => b.phone === phone);
 
     socket.emit('bet_response', {
       success: true,
       message: 'လောင်းကြေး တင်ပြီးပါပြီ!',
-      newBalance: user.balance
+      newBalance: user.balance,
+      myCurrentBets: myCurrentBets
     });
     
-    // Send updated balance specifically to this user room
     io.to(phone).emit('balance_sync', user.balance);
-
     sendAdminStats();
   });
 
@@ -174,8 +214,8 @@ io.on('connection', (socket) => {
         users[phone] = { phone: phone, pass: '123456', balance: 0 };
       }
       users[phone].balance += addAmt;
+      saveData();
       
-      // Update balance directly to target user room & update admin panel
       io.to(phone).emit('balance_sync', users[phone].balance);
       sendAdminStats();
       socket.emit('admin_toast', `User ${phone} ထံသို့ Unit ${addAmt} ထည့်သွင်း/နှုတ်ယူပြီးပါပြီ။`);
@@ -291,18 +331,24 @@ function processPayouts(result) {
       user.balance += winAmount;
     }
 
-    io.to(user.phone).emit('user_bet_settled', {
+    const historyRecord = {
       phone: user.phone,
       period: bet.period,
       betType: bet.betType,
       amount: bet.amount,
       win: isWin,
       winAmount: winAmount,
+      resultNumber: result.number,
       newBalance: user.balance
-    });
+    };
+
+    betHistory.unshift(historyRecord);
+
+    io.to(user.phone).emit('user_bet_settled', historyRecord);
   });
 
   currentBets = [];
+  saveData();
 }
 
 setInterval(() => {
@@ -323,10 +369,12 @@ setInterval(() => {
     gameHistory.unshift(historyItem);
     if (gameHistory.length > 50) gameHistory.pop();
 
+    saveData();
+
     io.emit("game_result", historyItem);
 
     gamePeriod++;
-    gameSeconds = 30;
+    gameSeconds = 60; // 1min
   }
 
   io.emit("timer_update", {
