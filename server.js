@@ -1,12 +1,13 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static(__dirname + '/public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 let manualTargetResult = "AUTO"; 
 let users = {};         
@@ -53,6 +54,9 @@ io.on('connection', (socket) => {
       });
     }
 
+    // Assign socket ID to track single user room
+    socket.join(phone);
+
     socket.emit('auth_response', {
       success: true,
       message: 'Login အောင်မြင်ပါတယ်',
@@ -85,6 +89,7 @@ io.on('connection', (socket) => {
     }
 
     users[phone] = { phone: phone, pass: pass, balance: 0 };
+    socket.join(phone);
 
     socket.emit('auth_response', {
       success: true,
@@ -145,24 +150,35 @@ io.on('connection', (socket) => {
       message: 'လောင်းကြေး တင်ပြီးပါပြီ!',
       newBalance: user.balance
     });
-    socket.emit('balance_sync', user.balance);
+    
+    // Send updated balance specifically to this user room
+    io.to(phone).emit('balance_sync', user.balance);
 
     sendAdminStats();
   });
 
+  // =========================
+  // ADMIN CONTROLS
+  // =========================
   socket.on('admin_set_target_result', (data) => {
     manualTargetResult = data.target;
+    io.emit('admin_toast', `နောက်ပွဲစဉ်အတွက် ဂဏန်း (${data.target}) ဟု ဂျစ်သတ်မှတ်လိုက်ပါပြီ။`);
   });
 
   socket.on('admin_update_balance', (data) => {
     const { phone, amount } = data;
-    if (phone && !isNaN(amount)) {
+    const addAmt = parseFloat(amount);
+    
+    if (phone && !isNaN(addAmt)) {
       if (!users[phone]) {
         users[phone] = { phone: phone, pass: '123456', balance: 0 };
       }
-      users[phone].balance += amount;
+      users[phone].balance += addAmt;
+      
+      // Update balance directly to target user room & update admin panel
+      io.to(phone).emit('balance_sync', users[phone].balance);
       sendAdminStats();
-      io.emit('balance_sync', users[phone].balance);
+      socket.emit('admin_toast', `User ${phone} ထံသို့ Unit ${addAmt} ထည့်သွင်း/နှုတ်ယူပြီးပါပြီ။`);
     }
   });
 
@@ -203,7 +219,6 @@ function calculateGameResult() {
     finalNumber = parseInt(manualTargetResult);
     manualTargetResult = "AUTO"; 
   } else if (currentBets.length > 0) {
-    // လောင်းကြေးရှိလျှင် - ဒိုင်အတွက် 60% တွက်ချက်မည်
     let totalBetsAmount = currentBets.reduce((sum, b) => sum + b.amount, 0);
     let possibleResults = [];
 
@@ -216,7 +231,6 @@ function calculateGameResult() {
       let size = num >= 5 ? 'BIG' : 'SMALL';
       let totalPayout = 0;
 
-      // တိုင်ပွဲတစ်ခုချင်းစီ၏ အနိုင်ကြေး တွက်ထုတ်ခြင်း
       currentBets.forEach(b => {
         if (String(num) === b.betType) totalPayout += b.amount * 9;
         else if (b.betType === size) totalPayout += b.amount * 2;
@@ -230,11 +244,8 @@ function calculateGameResult() {
       possibleResults.push({ number: num, payout: totalPayout });
     }
 
-    // Payout နိမ့်ဆုံးနံပါတ်များကို စီစဉ်ခြင်း
     possibleResults.sort((a, b) => a.payout - b.payout);
 
-    // 60% Chance: ဒိုင် အမြတ်အများဆုံးရမည့် (Payout အနည်းဆုံး) နံပါတ် ထုတ်ပေးမည်
-    // 40% Chance: သာမန် Random ကျစေမည်
     let isHouseWinRate = Math.random() < 0.60;
 
     if (isHouseWinRate) {
@@ -243,7 +254,6 @@ function calculateGameResult() {
       finalNumber = Math.floor(Math.random() * 10);
     }
   } else {
-    // လောင်းကြေးမရှိပါက Random
     finalNumber = Math.floor(Math.random() * 10);
   }
 
@@ -267,12 +277,10 @@ function processPayouts(result) {
     if (String(result.number) === bet.betType) winRatio = 9;
     else if (bet.betType === result.size) winRatio = 2;
     else if (bet.betType === 'GREEN') {
-      if (result.color === 'green') winRatio = 2;
-      else if (result.color === 'violet-green') winRatio = 1.5;
+      if (result.color === 'green' || result.color === 'violet-green') winRatio = result.color === 'green' ? 2 : 1.5;
     }
     else if (bet.betType === 'RED') {
-      if (result.color === 'red') winRatio = 2;
-      else if (result.color === 'violet-red') winRatio = 1.5;
+      if (result.color === 'red' || result.color === 'violet-red') winRatio = result.color === 'red' ? 2 : 1.5;
     }
     else if (bet.betType === 'VIOLET' && (result.number === 0 || result.number === 5)) winRatio = 4.5;
 
@@ -283,7 +291,7 @@ function processPayouts(result) {
       user.balance += winAmount;
     }
 
-    io.emit('user_bet_settled', {
+    io.to(user.phone).emit('user_bet_settled', {
       phone: user.phone,
       period: bet.period,
       betType: bet.betType,
