@@ -16,10 +16,9 @@
       --orange-3d: linear-gradient(180deg, #f97316 0%, #ea580c 100%);
       --blue-3d: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
     }
-
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
     body { background: #020617; color: white; display: flex; justify-content: center; }
-    
+
     .app { width: 100%; max-width: 480px; min-height: 100vh; background: var(--bg-main); padding: 12px; position: relative; padding-bottom: 40px; }
 
     #toastContainer {
@@ -49,7 +48,7 @@
     .wallet-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 16px; text-align: center; backdrop-filter: blur(10px); }
     .balance-val { font-size: 28px; font-weight: 800; color: #f1c40f; margin: 6px 0 14px; }
     .wallet-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    
+
     .btn-3d { border: none; padding: 12px; border-radius: 14px; color: white; font-weight: bold; font-size: 14px; cursor: pointer; position: relative; }
     .btn-withdraw { background: var(--red-3d); box-shadow: 0 4px 0 #b91c1c; }
     .btn-deposit { background: var(--green-3d); box-shadow: 0 4px 0 #047857; }
@@ -103,23 +102,10 @@
     .chip { flex: 1; padding: 8px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; text-align: center; font-size: 12px; cursor: pointer; }
     .chip.active { background: var(--orange-3d); border-color: #f97316; }
 
-    /* Custom Amount Input Box Style */
     .custom-input-box {
-      width: 100%;
-      padding: 12px 14px;
-      margin: 10px 0 15px;
-      border-radius: 12px;
-      border: 1px solid #f97316;
-      background: #0f172a;
-      color: #f1c40f;
-      font-size: 16px;
-      font-weight: bold;
-      outline: none;
-      text-align: center;
+      width: 100%; padding: 12px 14px; margin: 10px 0 15px; border-radius: 12px; border: 1px solid #f97316; background: #0f172a; color: #f1c40f; font-size: 16px; font-weight: bold; outline: none; text-align: center;
     }
-    .custom-input-box:focus {
-      box-shadow: 0 0 10px rgba(249, 115, 22, 0.4);
-    }
+    .custom-input-box:focus { box-shadow: 0 0 10px rgba(249, 115, 22, 0.4); }
 
     #resultModalOverlay {
       position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); z-index: 5000; display: none; justify-content: center; align-items: center; padding: 20px; backdrop-filter: blur(4px);
@@ -133,6 +119,8 @@
     .result-info-box { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 15px; font-size: 13px; }
     .info-pill { padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 12px; color: white; }
     .pill-green { background: #10b981; }
+    .pill-red { background: #ef4444; }
+    .pill-violet { background: #a855f7; }
     .pill-num { background: #0f172a; border: 1px solid rgba(255,255,255,0.2); width: 26px; height: 26px; line-height: 24px; border-radius: 50%; text-align: center; }
     .bonus-ticket { background: #ffffff; color: #1e293b; border-radius: 16px; padding: 12px 10px; margin-bottom: 12px; }
     .bonus-label { font-size: 12px; color: #f97316; font-weight: bold; }
@@ -143,173 +131,166 @@
   </style>
 </head>
 <body>
+  <div id="toastContainer"></div>
 
-<div id="toastContainer"></div>
-
-<!-- Auth Overlay -->
-<div id="authOverlay">
-  <div class="auth-card">
-    <h2 id="authTitle" style="color:#f1c40f; margin-bottom: 15px;">Lucky Lottery Login</h2>
-    <input type="text" id="loginUsername" class="auth-input" placeholder="ဖုန်းနံပါတ် သို့ အကောင့်အမည်">
-    <input type="password" id="loginPassword" class="auth-input" placeholder="စကားဝှက်">
-    <button class="auth-btn" id="authSubmitBtn" onclick="handleAuth()">လော့ဂ်အင်ဝင်မည်</button>
-    <div class="auth-toggle" id="authToggleBtn" onclick="toggleAuthMode()">
-      အကောင့်မရှိသေးပါက ဒီမှာ အကောင့်သစ်ဖွင့်ပါ (Register)
-    </div>
-  </div>
-</div>
-
-<div class="app">
-  <div class="header">
-    <div class="brand-title">🎰 Lucky Lottery</div>
-    <div id="userDisplay" style="font-size: 13px; color: #94a3b8;">Guest</div>
-  </div>
-
-  <div class="wallet-card">
-    <div style="font-size: 13px; color: #94a3b8;">Wallet balance 🔄</div>
-    <div class="balance-val" id="balanceDisplay">K0.00</div>
-    <div class="wallet-btns">
-      <button class="btn-3d btn-withdraw" onclick="showToast('Withdraw မကြာမီ ရနိုင်မည်', 'info')">Withdraw</button>
-      <button class="btn-3d btn-deposit" onclick="showToast('Deposit ပြုလုပ်ရန် Admin သို့ ဆက်သွယ်ပါ', 'info')">Deposit</button>
+  <!-- Auth Overlay -->
+  <div id="authOverlay">
+    <div class="auth-card">
+      <h2 id="authTitle" style="color:#f1c40f; margin-bottom: 15px;">Lucky Lottery Login</h2>
+      <input type="text" id="loginUsername" class="auth-input" placeholder="ဖုန်းနံပါတ် သို့ အကောင့်အမည်">
+      <input type="password" id="loginPassword" class="auth-input" placeholder="စကားဝှက်">
+      <button class="auth-btn" id="authSubmitBtn" onclick="handleAuth()">လော့ဂ်အင်ဝင်မည်</button>
+      <div class="auth-toggle" id="authToggleBtn" onclick="toggleAuthMode()">
+        အကောင့်မရှိသေးပါက ဒီမှာ အကောင့်သစ်ဖွင့်ပါ (Register)
+      </div>
     </div>
   </div>
 
-  <div class="modes">
-    <div class="mode-item active">Win Go 1Min</div>
-    <div class="mode-item">Win Go 3Min</div>
-    <div class="mode-item">Win Go 5Min</div>
-    <div class="mode-item">Win Go 10Min</div>
-  </div>
-
-  <div class="ticket-card">
-    <div>
-      <div style="font-size: 14px; font-weight: bold;">Win Go 1Min</div>
-      <small id="periodDisplay" style="color:#94a3b8;">P: Loading...</small>
-    </div>
-    <div>
-      <div style="font-size: 10px; text-align: right; color:#94a3b8; margin-bottom: 2px;">Time remaining</div>
-      <div class="time-digits" id="timerDisplay">01:00</div>
-    </div>
-  </div>
-
-  <div class="bet-status-bar status-open" id="betStatusBox">🟢 လောင်းကြေး တင်နိုင်ပါသေးသည်</div>
-
-  <!-- Active Bet Display Box -->
-  <div class="current-bets-box" id="currentBetBox" style="display:none;">
-    <div style="font-weight:bold; color:#f39c12; margin-bottom:4px;">🎯 လက်ရှိ ပွဲစဉ်အတွက် တင်ထားသော လောင်းကြေးများ:</div>
-    <div id="currentBetList"></div>
-  </div>
-
-  <div class="color-section">
-    <button class="btn-3d btn-color-green" onclick="openBetModal('color', 'GREEN')">Green</button>
-    <button class="btn-3d btn-color-violet" onclick="openBetModal('color', 'VIOLET')">Violet</button>
-    <button class="btn-3d btn-color-red" onclick="openBetModal('color', 'RED')">Red</button>
-  </div>
-
-  <div class="grid-balls">
-    <button class="ball-3d ball-0" onclick="openBetModal('number', 0)">0</button>
-    <button class="ball-3d ball-green" onclick="openBetModal('number', 1)">1</button>
-    <button class="ball-3d ball-red" onclick="openBetModal('number', 2)">2</button>
-    <button class="ball-3d ball-green" onclick="openBetModal('number', 3)">3</button>
-    <button class="ball-3d ball-red" onclick="openBetModal('number', 4)">4</button>
-    <button class="ball-3d ball-5" onclick="openBetModal('number', 5)">5</button>
-    <button class="ball-3d ball-red" onclick="openBetModal('number', 6)">6</button>
-    <button class="ball-3d ball-green" onclick="openBetModal('number', 7)">7</button>
-    <button class="ball-3d ball-red" onclick="openBetModal('number', 8)">8</button>
-    <button class="ball-3d ball-green" onclick="openBetModal('number', 9)">9</button>
-  </div>
-
-  <div class="size-section">
-    <button class="btn-3d btn-big" onclick="openBetModal('size', 'BIG')">Big</button>
-    <button class="btn-3d btn-small" onclick="openBetModal('size', 'SMALL')">Small</button>
-  </div>
-
-  <div class="history-card">
-    <div class="tab-header">
-      <button class="tab-btn active" id="tabGame" onclick="switchTab('game')">Game history</button>
-      <button class="tab-btn" id="tabMy" onclick="switchTab('my')">My History (လောင်းကြေး)</button>
+  <div class="app">
+    <div class="header">
+      <div class="brand-title">🎰 Lucky Lottery</div>
+      <div id="userDisplay" style="font-size: 13px; color: #94a3b8;">Guest</div>
     </div>
 
-    <!-- Game History Table -->
-    <div id="gameHistoryView">
-      <table id="gameHistoryTable">
-        <thead>
-          <tr>
-            <th>Period</th>
-            <th>Number</th>
-            <th>Big/Small</th>
-            <th>Color</th>
-          </tr>
-        </thead>
-        <tbody id="gameHistoryBody"></tbody>
-      </table>
+    <div class="wallet-card">
+      <div style="font-size: 13px; color: #94a3b8;">Wallet balance 🔄</div>
+      <div class="balance-val" id="balanceDisplay">K0.00</div>
+      <div class="wallet-btns">
+        <button class="btn-3d btn-withdraw" onclick="showToast('Withdraw မကြာမီ ရနိုင်မည်', 'info')">Withdraw</button>
+        <button class="btn-3d btn-deposit" onclick="showToast('Deposit ပြုလုပ်ရန် Admin သို့ ဆက်သွယ်ပါ', 'info')">Deposit</button>
+      </div>
     </div>
 
-    <!-- My History Table -->
-    <div id="myHistoryView" style="display:none;">
-      <table>
-        <thead>
-          <tr>
-            <th>Period</th>
-            <th>Bet</th>
-            <th>Amount</th>
-            <th>Result</th>
-          </tr>
-        </thead>
-        <tbody id="myHistoryBody"></tbody>
-      </table>
+    <div class="modes">
+      <div class="mode-item active">Win Go 1Min</div>
+      <div class="mode-item">Win Go 3Min</div>
+      <div class="mode-item">Win Go 5Min</div>
+      <div class="mode-item">Win Go 10Min</div>
+    </div>
+
+    <div class="ticket-card">
+      <div>
+        <div style="font-size: 14px; font-weight: bold;">Win Go 1Min</div>
+        <small id="periodDisplay" style="color:#94a3b8;">P: Loading...</small>
+      </div>
+      <div>
+        <div style="font-size: 10px; text-align: right; color:#94a3b8; margin-bottom: 2px;">Time remaining</div>
+        <div class="time-digits" id="timerDisplay">01:00</div>
+      </div>
+    </div>
+
+    <div class="bet-status-bar status-open" id="betStatusBox">🟢 လောင်းကြေး တင်နိုင်ပါသေးသည်</div>
+
+    <div class="current-bets-box" id="currentBetBox" style="display:none;">
+      <div style="font-weight:bold; color:#f39c12; margin-bottom:4px;">🎯 လက်ရှိ ပွဲစဉ်အတွက် တင်ထားသော လောင်းကြေးများ:</div>
+      <div id="currentBetList"></div>
+    </div>
+
+    <div class="color-section">
+      <button class="btn-3d btn-color-green" onclick="openBetModal('color', 'GREEN')">Green</button>
+      <button class="btn-3d btn-color-violet" onclick="openBetModal('color', 'VIOLET')">Violet</button>
+      <button class="btn-3d btn-color-red" onclick="openBetModal('color', 'RED')">Red</button>
+    </div>
+
+    <div class="grid-balls">
+      <button class="ball-3d ball-0" onclick="openBetModal('number', 0)">0</button>
+      <button class="ball-3d ball-green" onclick="openBetModal('number', 1)">1</button>
+      <button class="ball-3d ball-red" onclick="openBetModal('number', 2)">2</button>
+      <button class="ball-3d ball-green" onclick="openBetModal('number', 3)">3</button>
+      <button class="ball-3d ball-red" onclick="openBetModal('number', 4)">4</button>
+      <button class="ball-3d ball-5" onclick="openBetModal('number', 5)">5</button>
+      <button class="ball-3d ball-red" onclick="openBetModal('number', 6)">6</button>
+      <button class="ball-3d ball-green" onclick="openBetModal('number', 7)">7</button>
+      <button class="ball-3d ball-red" onclick="openBetModal('number', 8)">8</button>
+      <button class="ball-3d ball-green" onclick="openBetModal('number', 9)">9</button>
+    </div>
+
+    <div class="size-section">
+      <button class="btn-3d btn-big" onclick="openBetModal('size', 'BIG')">Big</button>
+      <button class="btn-3d btn-small" onclick="openBetModal('size', 'SMALL')">Small</button>
+    </div>
+
+    <div class="history-card">
+      <div class="tab-header">
+        <button class="tab-btn active" id="tabGame" onclick="switchTab('game')">Game history</button>
+        <button class="tab-btn" id="tabMy" onclick="switchTab('my')">My History (လောင်းကြေး)</button>
+      </div>
+
+      <div id="gameHistoryView">
+        <table id="gameHistoryTable">
+          <thead>
+            <tr>
+              <th>Period</th>
+              <th>Number</th>
+              <th>Big/Small</th>
+              <th>Color</th>
+            </tr>
+          </thead>
+          <tbody id="gameHistoryBody"></tbody>
+        </table>
+      </div>
+
+      <div id="myHistoryView" style="display:none;">
+        <table>
+          <thead>
+            <tr>
+              <th>Period</th>
+              <th>Bet</th>
+              <th>Amount</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody id="myHistoryBody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
-</div>
 
-<div id="resultModalOverlay">
-  <div class="result-card" id="resCard">
-    <div class="result-badge" id="resBadge">🚀</div>
-    <div class="result-title" id="resTitle">သင်အနိုင်ရတဲ့အတွက် ဂုဏ်ယူပါတယ်။</div>
-    
-    <div class="result-info-box">
-      <span>ထီးပေါက်ရလဒ်များ:</span>
-      <span class="info-pill pill-green" id="resColorPill">အစိမ်းရောင်</span>
-      <span class="info-pill pill-num" id="resNumPill">7</span>
-      <span class="info-pill pill-green" id="resSizePill">အကြီး</span>
+  <div id="resultModalOverlay">
+    <div class="result-card" id="resCard">
+      <div class="result-badge" id="resBadge">🚀</div>
+      <div class="result-title" id="resTitle">သင်အနိုင်ရတဲ့အတွက် ဂုဏ်ယူပါတယ်။</div>
+      <div class="result-info-box">
+        <span>ထီးပေါက်ရလဒ်များ:</span>
+        <span class="info-pill pill-green" id="resColorPill">အစိမ်းရောင်</span>
+        <span class="info-pill pill-num" id="resNumPill">7</span>
+        <span class="info-pill pill-green" id="resSizePill">အကြီး</span>
+      </div>
+
+      <div class="bonus-ticket">
+        <div class="bonus-label">ဘောနပ်စ်</div>
+        <div class="bonus-amount" id="resBonusAmt">K0.00</div>
+        <div class="bonus-period" id="resPeriodText">ပွဲအမှတ်စဉ် Win 1Min</div>
+      </div>
+
+      <div class="close-btn-circle" onclick="closeResultModal()">✕</div>
     </div>
-
-    <div class="bonus-ticket">
-      <div class="bonus-label">ဘောနပ်စ်</div>
-      <div class="bonus-amount" id="resBonusAmt">K0.00</div>
-      <div class="bonus-period" id="resPeriodText">ပွဲအမှတ်စဉ် Win 1Min</div>
-    </div>
-
-    <div class="close-btn-circle" onclick="closeResultModal()">✕</div>
   </div>
-</div>
 
-<div class="modal-overlay" id="betDrawer">
-  <div class="modal-content">
-    <div class="modal-title">Win Go 1Min - Select <span id="selectedItem" style="color:#f97316;">Big</span></div>
-    <div style="margin-bottom: 10px; font-size:13px;">Balance Base:</div>
-    <div class="chips">
-      <div class="chip" onclick="setBaseAmt(10, this)">10</div>
-      <div class="chip" onclick="setBaseAmt(100, this)">100</div>
-      <div class="chip active" onclick="setBaseAmt(1000, this)">1000</div>
-      <div class="chip" onclick="setBaseAmt(10000, this)">10000</div>
-    </div>
-    
-    <!-- Custom Amount Input Box -->
-    <div style="margin: 12px 0 4px; font-size:13px; color:#f1c40f;">သို့မဟုတ် စိတ်ကြိုက် ပမာဏ ရိုက်ထည့်ပါ:</div>
-    <input type="number" id="customBetInput" class="custom-input-box" placeholder="ဥပမာ- 500, 2500" oninput="onCustomInput(this.value)">
+  <div class="modal-overlay" id="betDrawer">
+    <div class="modal-content">
+      <div class="modal-title">Win Go 1Min - Select <span id="selectedItem" style="color:#f97316;">Big</span></div>
+      <div style="margin-bottom: 10px; font-size:13px;">Balance Base:</div>
+      <div class="chips">
+        <div class="chip" onclick="setBaseAmt(10, this)">10</div>
+        <div class="chip" onclick="setBaseAmt(100, this)">100</div>
+        <div class="chip active" onclick="setBaseAmt(1000, this)">1000</div>
+        <div class="chip" onclick="setBaseAmt(10000, this)">10000</div>
+      </div>
+      <div style="margin: 12px 0 4px; font-size:13px; color:#f1c40f;">သို့မဟုတ် စိတ်ကြိုက် ပမာဏ ရိုက်ထည့်ပါ:</div>
+      <input type="number" id="customBetInput" class="custom-input-box" placeholder="ဥပမာ- 500, 2500" oninput="onCustomInput(this.value)">
 
-    <div style="margin: 15px 0 10px; font-size:13px;">Multiplier:</div>
-    <div class="chips">
-      <div class="chip active" onclick="setMultiplier(1, this)">X1</div>
-      <div class="chip" onclick="setMultiplier(5, this)">X5</div>
-      <div class="chip" onclick="setMultiplier(10, this)">X10</div>
-      <div class="chip" onclick="setMultiplier(50, this)">X50</div>
+      <div style="margin: 15px 0 10px; font-size:13px;">Multiplier:</div>
+      <div class="chips">
+        <div class="chip active" onclick="setMultiplier(1, this)">X1</div>
+        <div class="chip" onclick="setMultiplier(5, this)">X5</div>
+        <div class="chip" onclick="setMultiplier(10, this)">X10</div>
+        <div class="chip" onclick="setMultiplier(50, this)">X50</div>
+      </div>
+      <button class="btn-submit" onclick="submitBet()">Confirm - Total K<span id="totalAmount">1,000</span></button>
+      <button class="btn-close" onclick="closeModals()">မလုပ်တော့ပါ</button>
     </div>
-    <button class="btn-submit" onclick="submitBet()">Confirm - Total K<span id="totalAmount">1,000</span></button>
-    <button class="btn-close" onclick="closeModals()">မလုပ်တော့ပါ</button>
   </div>
-</div>
 
 <script>
   const socket = io();
@@ -320,6 +301,40 @@
   let myBetHistory = [];
   let currentTimer = 60;
   let activeBetsList = [];
+  const resultsMap = new Map();
+
+  // Helper Functions
+  function getColorFromNumber(num) {
+    if (num === 0 || num === 5) return 'violet';
+    return num % 2 === 0 ? 'red' : 'green';
+  }
+
+  function getSizeFromNumber(num) {
+    return num >= 5 ? 'BIG' : 'SMALL';
+  }
+
+  function normalizeResult(res) {
+    if (!res) return null;
+    const num = Number(res.number);
+    return {
+      period: res.period,
+      number: num,
+      color: res.color || getColorFromNumber(num),
+      size: res.size || getSizeFromNumber(num)
+    };
+  }
+
+  function saveResult(res) {
+    const norm = normalizeResult(res);
+    if (norm && norm.period !== undefined) {
+      resultsMap.set(String(norm.period), norm);
+    }
+    return norm;
+  }
+
+  function getResultForPeriod(period) {
+    return resultsMap.get(String(period)) || null;
+  }
 
   function showToast(message, type = 'info') {
     const container = document.getElementById('toastContainer');
@@ -330,7 +345,6 @@
     setTimeout(() => toast.remove(), 3000);
   }
 
-  // Check LocalStorage on startup (Auto Login feature)
   window.addEventListener('load', () => {
     const savedUser = localStorage.getItem('lottery_user');
     if (savedUser) {
@@ -345,6 +359,7 @@
     isRegisterMode = !isRegisterMode;
     document.getElementById('authTitle').innerText = isRegisterMode ? 'Lucky Lottery Register' : 'Lucky Lottery Login';
     document.getElementById('authSubmitBtn').innerText = isRegisterMode ? 'အကောင့်သစ်ဖွင့်မည်' : 'လော့ဂ်အင်ဝင်မည်';
+    document.getElementById('authToggleBtn').innerText = isRegisterMode ? 'အကောင့်ရှိပြီးသားပါက ဒီမှာ လော့ဂ်အင်ဝင်ပါ (Login)' : 'အကောင့်မရှိသေးပါက ဒီမှာ အကောင့်သစ်ဖွင့်ပါ (Register)';
   }
 
   function handleAuth() {
@@ -352,14 +367,20 @@
     const pass = document.getElementById('loginPassword').value.trim();
     if (!phone || !pass) return showToast('အချက်အလက် ဖြည့်ပါ', 'error');
 
-    socket.emit(isRegisterMode ? 'user_register' : 'user_login', { phone, pass });
+    socket.emit(
+      isRegisterMode ? 'user_register' : 'user_login',
+      { phone, pass }
+    );
   }
 
   socket.on('auth_response', (res) => {
     if (res.success) {
       currentUser = res.user;
       myBetHistory = res.myBets || [];
-      localStorage.setItem('lottery_user', JSON.stringify({ phone: res.user.phone, pass: res.user.pass }));
+      localStorage.setItem(
+        'lottery_user',
+        JSON.stringify({ phone: res.user.phone, pass: res.user.pass })
+      );
       document.getElementById('userDisplay').innerText = currentUser.phone;
       document.getElementById('authOverlay').style.display = 'none';
       updateBalanceUI();
@@ -372,26 +393,26 @@
   });
 
   socket.on('init_data', (data) => {
-    gameHistory = data.history || [];
+    gameHistory = (data.history || []).map(normalizeResult);
+    gameHistory.forEach(saveResult);
     renderGameHistory();
     document.getElementById('periodDisplay').innerText = `P: ${data.period}`;
   });
 
   socket.on('timer_update', (data) => {
     currentTimer = data.timer;
-    let secs = currentTimer < 10 ? '0' + currentTimer : currentTimer;
+    const secs = currentTimer < 10 ? '0' + currentTimer : currentTimer;
     document.getElementById('timerDisplay').innerText = `00:${secs}`;
     document.getElementById('periodDisplay').innerText = `P: ${data.period}`;
 
-    // 10s ရောက်ပါက လောင်းကြေးပိတ်ခြင်း Visual ထည့်သွင်းထားသည်
     const statusBox = document.getElementById('betStatusBox');
     if (currentTimer <= 10) {
-      statusBox.className = "bet-status-bar status-closed";
-      statusBox.innerText = "🔴 လောင်းကြေး ခေတ္တပိတ်ထားပါသည် (10s ကန့်သတ်ချက်)";
+      statusBox.className = 'bet-status-bar status-closed';
+      statusBox.innerText = '🔴 လောင်းကြေး ခေတ္တပိတ်ထားပါသည် (10s ကန့်သတ်ချက်)';
       closeModals();
     } else {
-      statusBox.className = "bet-status-bar status-open";
-      statusBox.innerText = "🟢 လောင်းကြေး တင်နိုင်ပါသေးသည်";
+      statusBox.className = 'bet-status-bar status-open';
+      statusBox.innerText = '🟢 လောင်းကြေး တင်နိုင်ပါသေးသည်';
     }
   });
 
@@ -407,7 +428,6 @@
     if (res.success) {
       if (res.newBalance !== undefined) currentUser.balance = res.newBalance;
       updateBalanceUI();
-
       if (res.myCurrentBets) {
         activeBetsList = res.myCurrentBets;
         renderCurrentBets(activeBetsList);
@@ -420,7 +440,11 @@
     const list = document.getElementById('currentBetList');
     if (bets && bets.length > 0) {
       box.style.display = 'block';
-      list.innerHTML = bets.map(b => `<span style="background:#0f172a; padding:2px 8px; border-radius:6px; margin-right:5px; font-weight:bold;">${b.betType} - K${b.amount.toLocaleString()}</span>`).join(' ');
+      list.innerHTML = bets.map(b => `
+        <span style="background:#0f172a; padding:2px 8px; border-radius:6px; margin-right:5px; font-weight:bold;">
+          ${b.betType} - K${Number(b.amount || 0).toLocaleString()}
+        </span>
+      `).join(' ');
     } else {
       box.style.display = 'none';
       list.innerHTML = '';
@@ -428,499 +452,29 @@
   }
 
   socket.on('game_result', (res) => {
-    gameHistory.unshift(res);
-    if (gameHistory.length > 50) gameHistory.pop();
-    renderGameHistory();
-    activeBetsList = [];
-    renderCurrentBets([]); // Clear active bets UI on round finished
-  });
-
-  socket.on('user_bet_settled', (res) => {
-    if (currentUser && (res.phone === currentUser.phone || !res.phone)) {
-      currentUser.balance = res.newBalance;
-      updateBalanceUI();
-      
-      // My History ထဲတွင် အသစ်ထပ်ထည့်ရန်
-      myBetHistory.unshift({
-        period: res.period || (gameHistory[0] ? gameHistory[0].period : '-'),
-        betType: res.betType || '-',
-        amount: res.amount || 0,
-        win: res.win,
-        winAmount: res.winAmount || 0
-      });
-      renderMyHistory();
-      showResultModal(res);
-    }
-  });
-
-  function showResultModal(data) {
-    const overlay = document.getElementById('resultModalOverlay');
-    const card = document.getElementById('resCard');
-    const title = document.getElementById('resTitle');
-    const badge = document.getElementById('resBadge');
-    const bonusAmt = document.getElementById('resBonusAmt');
-
-    const lastResult = gameHistory[0] || {};
-
-    let colorText = lastResult.color === 'green' ? 'အစိမ်းရောင်' : (lastResult.color === 'red' ? 'အနီရောင်' : 'ခရမ်းရောင်');
-    let sizeText = lastResult.size === 'BIG' ? 'အကြီး' : 'အသေး';
-
-    document.getElementById('resColorPill').innerText = colorText;
-    document.getElementById('resNumPill').innerText = lastResult.number !== undefined ? lastResult.number : '-';
-    document.getElementById('resSizePill').innerText = sizeText;
-
-    if (data.win) {
-      card.classList.remove('loss');
-      badge.innerText = '🚀';
-      title.innerText = 'သင်အနိုင်ရတဲ့အတွက် ဂုဏ်ယူပါတယ်။';
-      bonusAmt.innerText = `K${data.winAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-    } else {
-      card.classList.add('loss');
-      badge.innerText = '💔';
-      title.innerText = 'စိတ်မကောင်းပါဘူး အရှုံးရလဒ်ထွက်ပါသည်။';
-      bonusAmt.innerText = `K0.00`;
-
-  const socket = io();
-
-  let isRegisterMode = false;
-  let currentUser = null;
-  let activeBet = {
-    type: '',
-    value: '',
-    baseAmt: 1000,
-    qty: 1,
-    customAmt: null
-  };
-
-  let gameHistory = [];
-  let myBetHistory = [];
-  let currentTimer = 60;
-  let activeBetsList = [];
-
-  // Period အလိုက် result သိမ်းရန်
-  const resultCache = {};
-
-  function showToast(message, type = 'info') {
-    const container = document.getElementById('toastContainer');
-
-    const toast = document.createElement('div');
-    toast.className = `toast-box ${type}`;
-
-    toast.innerHTML = `
-      <span>${type === 'success' ? '✅' : (type === 'error' ? '⚠️' : '🔔')}</span>
-      <span>${message}</span>
-    `;
-
-    container.appendChild(toast);
-
-    setTimeout(() => toast.remove(), 3000);
-  }
-
-  // ==========================================
-  // WIN GO COLOR RULE
-  // ==========================================
-
-  function getColorFromNumber(number) {
-    const n = Number(number);
-
-    // 0 / 5 = Violet
-    if (n === 0 || n === 5) {
-      return 'violet';
-    }
-
-    // 1 / 3 / 7 / 9 = Green
-    if ([1, 3, 7, 9].includes(n)) {
-      return 'green';
-    }
-
-    // 2 / 4 / 6 / 8 = Red
-    if ([2, 4, 6, 8].includes(n)) {
-      return 'red';
-    }
-
-    return 'violet';
-  }
-
-  // ==========================================
-  // BIG / SMALL
-  // 0 - 4 = SMALL
-  // 5 - 9 = BIG
-  // ==========================================
-
-  function getSizeFromNumber(number) {
-    const n = Number(number);
-
-    return n >= 5 ? 'BIG' : 'SMALL';
-  }
-
-  // ==========================================
-  // RESULT NORMALIZE
-  // Number ကို Source of Truth အဖြစ်သုံးမယ်
-  // ==========================================
-
-  function normalizeResult(result) {
-    if (!result) return null;
-
-    const number = Number(result.number);
-
-    if (!Number.isInteger(number) || number < 0 || number > 9) {
-      return result;
-    }
-
-    return {
-      ...result,
-      number: number,
-
-      // Server color မှားနေရင်တောင်
-      // number အတိုင်း color ပြန်တွက်မယ်
-      color: getColorFromNumber(number),
-
-      // Server size မှားနေရင်တောင်
-      // number အတိုင်း size ပြန်တွက်မယ်
-      size: getSizeFromNumber(number)
-    };
-  }
-
-  // ==========================================
-  // RESULT CACHE
-  // ==========================================
-
-  function saveResult(result) {
-    const normalized = normalizeResult(result);
-
-    if (
-      !normalized ||
-      normalized.period === undefined ||
-      normalized.period === null
-    ) {
-      return normalized;
-    }
-
-    resultCache[String(normalized.period)] = normalized;
-
-    return normalized;
-  }
-
-  function getResultForPeriod(period) {
-    if (period === undefined || period === null) {
-      return null;
-    }
-
-    // ပထမ cache ထဲကရှာ
-    const cached = resultCache[String(period)];
-
-    if (cached) {
-      return cached;
-    }
-
-    // မရှိရင် history ထဲကရှာ
-    const found = gameHistory.find(
-      h => String(h.period) === String(period)
-    );
-
-    if (found) {
-      return normalizeResult(found);
-    }
-
-    return null;
-  }
-
-  // ==========================================
-  // AUTO LOGIN
-  // ==========================================
-
-  window.addEventListener('load', () => {
-    const savedUser = localStorage.getItem('lottery_user');
-
-    if (savedUser) {
-      try {
-        const parsed = JSON.parse(savedUser);
-
-        socket.emit('user_login', parsed);
-      } catch (e) {}
-    }
-  });
-
-  // ==========================================
-  // LOGIN / REGISTER
-  // ==========================================
-
-  function toggleAuthMode() {
-    isRegisterMode = !isRegisterMode;
-
-    document.getElementById('authTitle').innerText =
-      isRegisterMode
-        ? 'Lucky Lottery Register'
-        : 'Lucky Lottery Login';
-
-    document.getElementById('authSubmitBtn').innerText =
-      isRegisterMode
-        ? 'အကောင့်သစ်ဖွင့်မည်'
-        : 'လော့ဂ်အင်ဝင်မည်';
-  }
-
-  function handleAuth() {
-    const phone =
-      document.getElementById('loginUsername').value.trim();
-
-    const pass =
-      document.getElementById('loginPassword').value.trim();
-
-    if (!phone || !pass) {
-      return showToast('အချက်အလက် ဖြည့်ပါ', 'error');
-    }
-
-    socket.emit(
-      isRegisterMode ? 'user_register' : 'user_login',
-      {
-        phone,
-        pass
-      }
-    );
-  }
-
-  socket.on('auth_response', (res) => {
-
-    if (res.success) {
-
-      currentUser = res.user;
-
-      myBetHistory = res.myBets || [];
-
-      localStorage.setItem(
-        'lottery_user',
-        JSON.stringify({
-          phone: res.user.phone,
-          pass: res.user.pass
-        })
-      );
-
-      document.getElementById('userDisplay').innerText =
-        currentUser.phone;
-
-      document.getElementById('authOverlay').style.display =
-        'none';
-
-      updateBalanceUI();
-
-      renderMyHistory();
-
-      showToast(res.message, 'success');
-
-    } else {
-
-      localStorage.removeItem('lottery_user');
-
-      showToast(res.message, 'error');
-    }
-  });
-
-  // ==========================================
-  // INITIAL GAME DATA
-  // ==========================================
-
-  socket.on('init_data', (data) => {
-
-    gameHistory = (data.history || [])
-      .map(normalizeResult);
-
-    gameHistory.forEach(saveResult);
-
-    renderGameHistory();
-
-    document.getElementById('periodDisplay').innerText =
-      `P: ${data.period}`;
-  });
-
-  // ==========================================
-  // TIMER
-  // ==========================================
-
-  socket.on('timer_update', (data) => {
-
-    currentTimer = data.timer;
-
-    const secs =
-      currentTimer < 10
-        ? '0' + currentTimer
-        : currentTimer;
-
-    document.getElementById('timerDisplay').innerText =
-      `00:${secs}`;
-
-    document.getElementById('periodDisplay').innerText =
-      `P: ${data.period}`;
-
-    const statusBox =
-      document.getElementById('betStatusBox');
-
-    if (currentTimer <= 10) {
-
-      statusBox.className =
-        'bet-status-bar status-closed';
-
-      statusBox.innerText =
-        '🔴 လောင်းကြေး ခေတ္တပိတ်ထားပါသည် (10s ကန့်သတ်ချက်)';
-
-      closeModals();
-
-    } else {
-
-      statusBox.className =
-        'bet-status-bar status-open';
-
-      statusBox.innerText =
-        '🟢 လောင်းကြေး တင်နိုင်ပါသေးသည်';
-    }
-  });
-
-  // ==========================================
-  // BALANCE
-  // ==========================================
-
-  socket.on('balance_sync', (newBalance) => {
-
-    if (currentUser) {
-
-      currentUser.balance = newBalance;
-
-      updateBalanceUI();
-    }
-  });
-
-  // ==========================================
-  // BET RESPONSE
-  // ==========================================
-
-  socket.on('bet_response', (res) => {
-
-    showToast(
-      res.message,
-      res.success ? 'success' : 'error'
-    );
-
-    if (res.success) {
-
-      if (res.newBalance !== undefined) {
-        currentUser.balance = res.newBalance;
-      }
-
-      updateBalanceUI();
-
-      if (res.myCurrentBets) {
-
-        activeBetsList =
-          res.myCurrentBets;
-
-        renderCurrentBets(activeBetsList);
-      }
-    }
-  });
-
-  // ==========================================
-  // CURRENT BETS
-  // ==========================================
-
-  function renderCurrentBets(bets) {
-
-    const box =
-      document.getElementById('currentBetBox');
-
-    const list =
-      document.getElementById('currentBetList');
-
-    if (bets && bets.length > 0) {
-
-      box.style.display = 'block';
-
-      list.innerHTML =
-        bets.map(b => `
-          <span
-            style="
-              background:#0f172a;
-              padding:2px 8px;
-              border-radius:6px;
-              margin-right:5px;
-              font-weight:bold;
-            "
-          >
-            ${b.betType} -
-            K${Number(b.amount || 0).toLocaleString()}
-          </span>
-        `).join(' ');
-
-    } else {
-
-      box.style.display = 'none';
-
-      list.innerHTML = '';
-    }
-  }
-
-  // ==========================================
-  // GAME RESULT
-  // ==========================================
-
-  socket.on('game_result', (res) => {
-
-    const normalized =
-      saveResult(res);
-
+    const normalized = saveResult(res);
     if (!normalized) return;
 
-    // တူညီတဲ့ period ရှိရင် update
-    const existingIndex =
-      gameHistory.findIndex(
-        h =>
-          String(h.period) ===
-          String(normalized.period)
-      );
-
+    const existingIndex = gameHistory.findIndex(h => String(h.period) === String(normalized.period));
     if (existingIndex !== -1) {
-
-      gameHistory[existingIndex] =
-        normalized;
-
+      gameHistory[existingIndex] = normalized;
     } else {
-
       gameHistory.unshift(normalized);
     }
 
-    if (gameHistory.length > 50) {
-      gameHistory.pop();
-    }
-
+    if (gameHistory.length > 50) gameHistory.pop();
     renderGameHistory();
-
     activeBetsList = [];
-
     renderCurrentBets([]);
   });
 
-  // ==========================================
-  // USER BET SETTLED
-  // ==========================================
-
   socket.on('user_bet_settled', (res) => {
+    if (!currentUser || (res.phone && res.phone !== currentUser.phone)) return;
 
-    if (
-      !currentUser ||
-      (
-        res.phone &&
-        res.phone !== currentUser.phone
-      )
-    ) {
-      return;
-    }
-
-    currentUser.balance =
-      res.newBalance;
-
+    currentUser.balance = res.newBalance;
     updateBalanceUI();
 
-    const period =
-      res.period || '-';
-
+    const period = res.period || '-';
     myBetHistory.unshift({
       period: period,
       betType: res.betType || '-',
@@ -928,745 +482,202 @@
       win: res.win,
       winAmount: res.winAmount || 0
     });
-
     renderMyHistory();
 
-    /*
-      အရင် code မှာ
-
-      const lastResult = gameHistory[0];
-
-      လုပ်ထားတာကြောင့် တစ်ခါတစ်လေ
-      နောက် period ရဲ့ number ကို Popup မှာပြတယ်။
-
-      အခုတော့ Bet ရဲ့ period နဲ့
-      Result ရဲ့ period ကို တိုက်ပြီးယူမယ်။
-    */
-
-    let exactResult =
-      getResultForPeriod(period);
-
-    // Server က settlement ထဲမှာ number ပါလာရင်
-    // အဲဒါကို အတိအကျအသုံးပြုမယ်
-    if (
-      res.number !== undefined &&
-      res.number !== null
-    ) {
-
-      exactResult =
-        normalizeResult({
-          ...(exactResult || {}),
-          period: period,
-          number: res.number,
-          color: res.color,
-          size: res.size
-        });
-
+    let exactResult = getResultForPeriod(period);
+    if (res.number !== undefined && res.number !== null) {
+      exactResult = normalizeResult({
+        ...(exactResult || {}),
+        period: period,
+        number: res.number,
+        color: res.color,
+        size: res.size
+      });
       saveResult(exactResult);
     }
 
-    showResultModal(
-      res,
-      exactResult
-    );
+    showResultModal(res, exactResult);
   });
 
-  // ==========================================
-  // RESULT POPUP
-  // ==========================================
+  function showResultModal(data, exactResult) {
+    const overlay = document.getElementById('resultModalOverlay');
+    const card = document.getElementById('resCard');
+    const title = document.getElementById('resTitle');
+    const badge = document.getElementById('resBadge');
+    const bonusAmt = document.getElementById('resBonusAmt');
 
-  function showResultModal(
-    data,
-    exactResult
-  ) {
+    const result = exactResult ? normalizeResult(exactResult) : null;
+    let number = result && result.number !== undefined && result.number !== null ? Number(result.number) : '-';
+    let color = number !== '-' ? getColorFromNumber(number) : 'violet';
+    let size = number !== '-' ? getSizeFromNumber(number) : '-';
 
-    const overlay =
-      document.getElementById(
-        'resultModalOverlay'
-      );
+    const colorNames = { green: 'အစိမ်းရောင်', red: 'အနီရောင်', violet: 'ခရမ်းရောင်' };
+    document.getElementById('resColorPill').innerText = colorNames[color] || 'ခရမ်းရောင်';
 
-    const card =
-      document.getElementById(
-        'resCard'
-      );
+    const colorPill = document.getElementById('resColorPill');
+    colorPill.classList.remove('pill-green', 'pill-red', 'pill-violet');
+    colorPill.classList.add(color === 'green' ? 'pill-green' : color === 'red' ? 'pill-red' : 'pill-violet');
 
-    const title =
-      document.getElementById(
-        'resTitle'
-      );
+    document.getElementById('resNumPill').innerText = number;
 
-    const badge =
-      document.getElementById(
-        'resBadge'
-      );
+    const sizeText = size === 'BIG' ? 'အကြီး' : size === 'SMALL' ? 'အသေး' : '-';
+    const sizePill = document.getElementById('resSizePill');
+    sizePill.innerText = sizeText;
+    sizePill.classList.remove('pill-green', 'pill-red', 'pill-violet');
+    sizePill.classList.add(size === 'BIG' ? 'pill-green' : 'pill-violet');
 
-    const bonusAmt =
-      document.getElementById(
-        'resBonusAmt'
-      );
-
-    // အဲဒီ period ရဲ့ result ကိုပဲသုံး
-    const result =
-      exactResult
-        ? normalizeResult(exactResult)
-        : null;
-
-    let number = '-';
-
-    if (
-      result &&
-      result.number !== undefined &&
-      result.number !== null
-    ) {
-      number = Number(result.number);
-    }
-
-    let color = 'violet';
-
-    if (number !== '-') {
-      color =
-        getColorFromNumber(number);
-    }
-
-    let size = '-';
-
-    if (number !== '-') {
-      size =
-        getSizeFromNumber(number);
-    }
-
-    // ==========================================
-    // COLOR NAME
-    // ==========================================
-
-    const colorNames = {
-      green: 'အစိမ်းရောင်',
-      red: 'အနီရောင်',
-      violet: 'ခရမ်းရောင်'
-    };
-
-    document.getElementById(
-      'resColorPill'
-    ).innerText =
-      colorNames[color] ||
-      'ခရမ်းရောင်';
-
-    // ==========================================
-    // COLOR PILL CLASS
-    // ==========================================
-
-    const colorPill =
-      document.getElementById(
-        'resColorPill'
-      );
-
-    colorPill.classList.remove(
-      'pill-green',
-      'pill-red',
-      'pill-violet'
-    );
-
-    if (color === 'green') {
-
-      colorPill.classList.add(
-        'pill-green'
-      );
-
-    } else if (color === 'red') {
-
-      colorPill.classList.add(
-        'pill-red'
-      );
-
-    } else {
-
-      colorPill.classList.add(
-        'pill-violet'
-      );
-    }
-
-    // ==========================================
-    // NUMBER
-    // ==========================================
-
-    document.getElementById(
-      'resNumPill'
-    ).innerText = number;
-
-    // ==========================================
-    // SIZE
-    // ==========================================
-
-    const sizeText =
-      size === 'BIG'
-        ? 'အကြီး'
-        : size === 'SMALL'
-          ? 'အသေး'
-          : '-';
-
-    const sizePill =
-      document.getElementById(
-        'resSizePill'
-      );
-
-    sizePill.innerText =
-      sizeText;
-
-    sizePill.classList.remove(
-      'pill-green',
-      'pill-red',
-      'pill-violet'
-    );
-
-    sizePill.classList.add(
-      size === 'BIG'
-        ? 'pill-green'
-        : 'pill-violet'
-    );
-
-    // ==========================================
-    // PERIOD
-    // ==========================================
-
-    document.getElementById(
-      'resPeriodText'
-    ).innerText =
-      periodText(period);
-
-    // ==========================================
-    // WIN / LOSS
-    // ==========================================
+    document.getElementById('resPeriodText').innerText = periodText(data.period);
 
     if (data.win) {
-
       card.classList.remove('loss');
-
       badge.innerText = '🚀';
-
-      title.innerText =
-        'သင်အနိုင်ရတဲ့အတွက် ဂုဏ်ယူပါတယ်။';
-
-      bonusAmt.innerText =
-        `K${Number(
-          data.winAmount || 0
-        ).toLocaleString(
-          'en-US',
-          {
-            minimumFractionDigits: 2
-          }
-        )}`;
-
+      title.innerText = 'သင်အနိုင်ရတဲ့အတွက် ဂုဏ်ယူပါတယ်။';
+      bonusAmt.innerText = `K${Number(data.winAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
     } else {
-
       card.classList.add('loss');
-
       badge.innerText = '💔';
-
-      title.innerText =
-        'စိတ်မကောင်းပါဘူး အရှုံးရလဒ်ထွက်ပါသည်။';
-
-      bonusAmt.innerText =
-        'K0.00';
+      title.innerText = 'စိတ်မကောင်းပါဘူး အရှုံးရလဒ်ထွက်ပါသည်။';
+      bonusAmt.innerText = 'K0.00';
     }
 
-    overlay.style.display =
-      'flex';
-
-    setTimeout(
-      closeResultModal,
-      4000
-    );
+    overlay.style.display = 'flex';
+    setTimeout(closeResultModal, 4000);
   }
 
   function periodText(period) {
-
-    if (
-      period &&
-      period !== '-'
-    ) {
-      return `Win 1Min - ${period}`;
-    }
-
-    return 'Win 1Min';
+    return (period && period !== '-') ? `Win 1Min - ${period}` : 'Win 1Min';
   }
 
   function closeResultModal() {
-
-    document.getElementById(
-      'resultModalOverlay'
-    ).style.display =
-      'none';
+    document.getElementById('resultModalOverlay').style.display = 'none';
   }
-
-  // ==========================================
-  // BALANCE UI
-  // ==========================================
 
   function updateBalanceUI() {
-
     if (currentUser) {
-
-      document.getElementById(
-        'balanceDisplay'
-      ).innerText =
-        `K${Number(
-          currentUser.balance || 0
-        ).toLocaleString(
-          'en-US',
-          {
-            minimumFractionDigits: 2
-          }
-        )}`;
+      document.getElementById('balanceDisplay').innerText = `K${Number(currentUser.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
     }
   }
-
-  // ==========================================
-  // GAME HISTORY
-  // ==========================================
 
   function renderGameHistory() {
+    const tbody = document.getElementById('gameHistoryBody');
+    tbody.innerHTML = gameHistory.map(raw => {
+      const h = normalizeResult(raw);
+      if (!h || h.number === undefined || h.number === null) return '';
 
-    const tbody =
-      document.getElementById(
-        'gameHistoryBody'
-      );
+      const number = Number(h.number);
+      const color = getColorFromNumber(number);
+      const size = getSizeFromNumber(number);
 
-    tbody.innerHTML =
-      gameHistory.map(raw => {
+      let bg = color === 'green' ? '#10b981' : color === 'red' ? '#ef4444' : '#a855f7';
+      let colorName = color === 'green' ? 'Green' : color === 'red' ? 'Red' : 'Violet';
 
-        const h =
-          normalizeResult(raw);
-
-        if (
-          !h ||
-          h.number === undefined ||
-          h.number === null
-        ) {
-          return '';
-        }
-
-        const number =
-          Number(h.number);
-
-        // IMPORTANT
-        // History color ကို number ကနေတွက်
-        const color =
-          getColorFromNumber(number);
-
-        // Big / Small ကိုလည်း number ကနေတွက်
-        const size =
-          getSizeFromNumber(number);
-
-        // ======================================
-        // COLOR
-        // ======================================
-
-        let bg = '#a855f7';
-
-        if (color === 'green') {
-          bg = '#10b981';
-        }
-
-        if (color === 'red') {
-          bg = '#ef4444';
-        }
-
-        // ======================================
-        // COLOR NAME
-        // ======================================
-
-        let colorName =
-          'Violet';
-
-        if (color === 'green') {
-          colorName = 'Green';
-        }
-
-        if (color === 'red') {
-          colorName = 'Red';
-        }
-
-        return `
-          <tr>
-
-            <td>
-              ${h.period ?? '-'}
-            </td>
-
-            <td>
-              <span
-                class="res-ball"
-                style="background:${bg}"
-              >
-                ${number}
-              </span>
-            </td>
-
-            <td
-              style="
-                font-weight:bold;
-                color:${
-                  size === 'BIG'
-                    ? '#f97316'
-                    : '#3b82f6'
-                }
-              "
-            >
-              ${size}
-            </td>
-
-            <td>
-              <span
-                style="
-                  color:${bg};
-                  font-weight:bold;
-                "
-              >
-                ● ${colorName}
-              </span>
-            </td>
-
-          </tr>
-        `;
-      }).join('');
+      return `
+        <tr>
+          <td>${h.period ?? '-'}</td>
+          <td><span class="res-ball" style="background:${bg}">${number}</span></td>
+          <td style="font-weight:bold; color:${size === 'BIG' ? '#f97316' : '#3b82f6'}">${size}</td>
+          <td><span style="color:${bg}; font-weight:bold;">● ${colorName}</span></td>
+        </tr>
+      `;
+    }).join('');
   }
-
-  // ==========================================
-  // MY HISTORY
-  // ==========================================
 
   function renderMyHistory() {
+    const tbody = document.getElementById('myHistoryBody');
+    tbody.innerHTML = myBetHistory.map(b => {
+      const amount = Number(b.amount || 0);
+      const winAmount = Number(b.winAmount || 0);
+      const winText = b.win
+        ? `<span style="color:#10b981; font-weight:bold;">+K${winAmount.toLocaleString()}</span>`
+        : `<span style="color:#ef4444; font-weight:bold;">-K${amount.toLocaleString()}</span>`;
 
-    const tbody =
-      document.getElementById(
-        'myHistoryBody'
-      );
-
-    tbody.innerHTML =
-      myBetHistory.map(b => {
-
-        const amount =
-          Number(b.amount || 0);
-
-        const winAmount =
-          Number(b.winAmount || 0);
-
-        const winText =
-          b.win
-
-            ? `
-              <span
-                style="
-                  color:#10b981;
-                  font-weight:bold;
-                "
-              >
-                +K${winAmount.toLocaleString()}
-              </span>
-            `
-
-            : `
-              <span
-                style="
-                  color:#ef4444;
-                  font-weight:bold;
-                "
-              >
-                -K${amount.toLocaleString()}
-              </span>
-            `;
-
-        return `
-          <tr>
-
-            <td>
-              ${b.period ?? '-'}
-            </td>
-
-            <td
-              style="
-                font-weight:bold;
-                color:#f1c40f;
-              "
-            >
-              ${b.betType ?? '-'}
-            </td>
-
-            <td>
-              K${amount.toLocaleString()}
-            </td>
-
-            <td>
-              ${winText}
-            </td>
-
-          </tr>
-        `;
-      }).join('');
+      return `
+        <tr>
+          <td>${b.period ?? '-'}</td>
+          <td style="font-weight:bold; color:#f1c40f;">${b.betType ?? '-'}</td>
+          <td>K${amount.toLocaleString()}</td>
+          <td>${winText}</td>
+        </tr>
+      `;
+    }).join('');
   }
-
-  // ==========================================
-  // HISTORY TAB
-  // ==========================================
 
   function switchTab(tab) {
-
-    document.getElementById(
-      'tabGame'
-    ).classList.toggle(
-      'active',
-      tab === 'game'
-    );
-
-    document.getElementById(
-      'tabMy'
-    ).classList.toggle(
-      'active',
-      tab === 'my'
-    );
-
-    document.getElementById(
-      'gameHistoryView'
-    ).style.display =
-      tab === 'game'
-        ? 'block'
-        : 'none';
-
-    document.getElementById(
-      'myHistoryView'
-    ).style.display =
-      tab === 'my'
-        ? 'block'
-        : 'none';
+    document.getElementById('tabGame').classList.toggle('active', tab === 'game');
+    document.getElementById('tabMy').classList.toggle('active', tab === 'my');
+    document.getElementById('gameHistoryView').style.display = tab === 'game' ? 'block' : 'none';
+    document.getElementById('myHistoryView').style.display = tab === 'my' ? 'block' : 'none';
   }
-
-  // ==========================================
-  // OPEN BET
-  // ==========================================
 
   function openBetModal(type, val) {
-
-    if (!currentUser) {
-      return showToast(
-        'လော့ဂ်အင် အရင်ဝင်ပါ',
-        'error'
-      );
-    }
-
-    if (currentTimer <= 10) {
-
-      return showToast(
-        '10 စက္ကန့်အောက် ရောက်နေသဖြင့် လောင်းကြေးတင်၍ မရပါ',
-        'error'
-      );
-    }
+    if (!currentUser) return showToast('လော့ဂ်အင် အရင်ဝင်ပါ', 'error');
+    if (currentTimer <= 10) return showToast('10 စက္ကန့်အောက် ရောက်နေသဖြင့် လောင်းကြေးတင်၍ မရပါ', 'error');
 
     activeBet.type = type;
-
     activeBet.value = val;
-
     activeBet.customAmt = null;
 
-    document.getElementById(
-      'selectedItem'
-    ).innerText = val;
-
-    const customInput =
-      document.getElementById(
-        'customBetInput'
-      );
-
-    if (customInput) {
-      customInput.value = '';
-    }
+    document.getElementById('selectedItem').innerText = val;
+    const customInput = document.getElementById('customBetInput');
+    if (customInput) customInput.value = '';
 
     updateBetTotal();
-
-    document.getElementById(
-      'betDrawer'
-    ).style.display =
-      'flex';
+    document.getElementById('betDrawer').style.display = 'flex';
   }
-
-  // ==========================================
-  // BASE AMOUNT
-  // ==========================================
 
   function setBaseAmt(amt, el) {
-
     activeBet.baseAmt = amt;
-
     activeBet.customAmt = null;
-
-    document.getElementById(
-      'customBetInput'
-    ).value = '';
-
-    el.parentElement
-      .querySelectorAll('.chip')
-      .forEach(c =>
-        c.classList.remove('active')
-      );
-
+    document.getElementById('customBetInput').value = '';
+    el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
     el.classList.add('active');
-
     updateBetTotal();
   }
-
-  // ==========================================
-  // MULTIPLIER
-  // ==========================================
 
   function setMultiplier(mult, el) {
-
     activeBet.qty = mult;
-
-    el.parentElement
-      .querySelectorAll('.chip')
-      .forEach(c =>
-        c.classList.remove('active')
-      );
-
+    el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
     el.classList.add('active');
-
     updateBetTotal();
   }
-
-  // ==========================================
-  // CUSTOM AMOUNT
-  // ==========================================
 
   function onCustomInput(val) {
-
-    const amt =
-      parseInt(val);
-
-    if (
-      !isNaN(amt) &&
-      amt > 0
-    ) {
-
-      activeBet.customAmt =
-        amt;
-
-    } else {
-
-      activeBet.customAmt =
-        null;
-    }
-
+    const amt = parseInt(val);
+    activeBet.customAmt = (!isNaN(amt) && amt > 0) ? amt : null;
     updateBetTotal();
   }
 
-  // ==========================================
-  // BET TOTAL
-  // ==========================================
-
   function updateBetTotal() {
-
-    let total = 0;
-
-    if (
-      activeBet.customAmt !== null &&
-      activeBet.customAmt > 0
-    ) {
-
-      total =
-        activeBet.customAmt *
-        activeBet.qty;
-
-    } else {
-
-      total =
-        activeBet.baseAmt *
-        activeBet.qty;
-    }
-
-    document.getElementById(
-      'totalAmount'
-    ).innerText =
-      total.toLocaleString();
+    let total = (activeBet.customAmt !== null && activeBet.customAmt > 0)
+      ? activeBet.customAmt * activeBet.qty
+      : activeBet.baseAmt * activeBet.qty;
+    document.getElementById('totalAmount').innerText = total.toLocaleString();
   }
 
-  // ==========================================
-  // SUBMIT BET
-  // ==========================================
-
   function submitBet() {
-
     if (currentTimer <= 10) {
-
-      showToast(
-        '10 စက္ကန့်အောက် ရောက်နေသဖြင့် လောင်းကြေး ပိတ်သွားပါပြီ',
-        'error'
-      );
-
+      showToast('10 စက္ကန့်အောက် ရောက်နေသဖြင့် လောင်းကြေး ပိတ်သွားပါပြီ', 'error');
       return closeModals();
     }
 
-    let total = 0;
+    let total = (activeBet.customAmt !== null && activeBet.customAmt > 0)
+      ? activeBet.customAmt * activeBet.qty
+      : activeBet.baseAmt * activeBet.qty;
 
-    if (
-      activeBet.customAmt !== null &&
-      activeBet.customAmt > 0
-    ) {
+    if (isNaN(total) || total <= 0) return showToast('မှန်ကန်သော လောင်းကြေးပမာဏ ဖြည့်ပါ', 'error');
+    if (currentUser.balance < total) return showToast('လက်ကျန်ငွေ မလုံလောက်ပါ', 'error');
 
-      total =
-        activeBet.customAmt *
-        activeBet.qty;
-
-    } else {
-
-      total =
-        activeBet.baseAmt *
-        activeBet.qty;
-    }
-
-    if (
-      isNaN(total) ||
-      total <= 0
-    ) {
-
-      return showToast(
-        'မှန်ကန်သော လောင်းကြေးပမာဏ ဖြည့်ပါ',
-        'error'
-      );
-    }
-
-    if (
-      currentUser.balance <
-      total
-    ) {
-
-      return showToast(
-        'လက်ကျန်ငွေ မလုံလောက်ပါ',
-        'error'
-      );
-    }
-
-    socket.emit(
-      'place_bet',
-      {
-        phone: currentUser.phone,
-        betType: activeBet.value,
-        amount: total
-      }
-    );
+    socket.emit('place_bet', {
+      phone: currentUser.phone,
+      betType: activeBet.value,
+      amount: total
+    });
 
     closeModals();
   }
 
-  // ==========================================
-  // CLOSE MODALS
-  // ==========================================
-
   function closeModals() {
-
-    document
-      .querySelectorAll('.modal-overlay')
-      .forEach(m => {
-        m.style.display = 'none';
-      });
+    document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
   }
 </script>
 </body>
