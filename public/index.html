@@ -554,67 +554,1194 @@
     activeBet.customAmt = null;
     document.getElementById('customBetInput').value = '';
 
-    el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+<script>
+  const socket = io();
+
+  let isRegisterMode = false;
+  let currentUser = null;
+  let activeBet = {
+    type: '',
+    value: '',
+    baseAmt: 1000,
+    qty: 1,
+    customAmt: null
+  };
+
+  let gameHistory = [];
+  let myBetHistory = [];
+  let currentTimer = 60;
+  let activeBetsList = [];
+
+  // Period အလိုက် result သိမ်းရန်
+  const resultCache = {};
+
+  function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+
+    const toast = document.createElement('div');
+    toast.className = `toast-box ${type}`;
+
+    toast.innerHTML = `
+      <span>${type === 'success' ? '✅' : (type === 'error' ? '⚠️' : '🔔')}</span>
+      <span>${message}</span>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => toast.remove(), 3000);
+  }
+
+  // ==========================================
+  // WIN GO COLOR RULE
+  // ==========================================
+
+  function getColorFromNumber(number) {
+    const n = Number(number);
+
+    // 0 / 5 = Violet
+    if (n === 0 || n === 5) {
+      return 'violet';
+    }
+
+    // 1 / 3 / 7 / 9 = Green
+    if ([1, 3, 7, 9].includes(n)) {
+      return 'green';
+    }
+
+    // 2 / 4 / 6 / 8 = Red
+    if ([2, 4, 6, 8].includes(n)) {
+      return 'red';
+    }
+
+    return 'violet';
+  }
+
+  // ==========================================
+  // BIG / SMALL
+  // 0 - 4 = SMALL
+  // 5 - 9 = BIG
+  // ==========================================
+
+  function getSizeFromNumber(number) {
+    const n = Number(number);
+
+    return n >= 5 ? 'BIG' : 'SMALL';
+  }
+
+  // ==========================================
+  // RESULT NORMALIZE
+  // Number ကို Source of Truth အဖြစ်သုံးမယ်
+  // ==========================================
+
+  function normalizeResult(result) {
+    if (!result) return null;
+
+    const number = Number(result.number);
+
+    if (!Number.isInteger(number) || number < 0 || number > 9) {
+      return result;
+    }
+
+    return {
+      ...result,
+      number: number,
+
+      // Server color မှားနေရင်တောင်
+      // number အတိုင်း color ပြန်တွက်မယ်
+      color: getColorFromNumber(number),
+
+      // Server size မှားနေရင်တောင်
+      // number အတိုင်း size ပြန်တွက်မယ်
+      size: getSizeFromNumber(number)
+    };
+  }
+
+  // ==========================================
+  // RESULT CACHE
+  // ==========================================
+
+  function saveResult(result) {
+    const normalized = normalizeResult(result);
+
+    if (
+      !normalized ||
+      normalized.period === undefined ||
+      normalized.period === null
+    ) {
+      return normalized;
+    }
+
+    resultCache[String(normalized.period)] = normalized;
+
+    return normalized;
+  }
+
+  function getResultForPeriod(period) {
+    if (period === undefined || period === null) {
+      return null;
+    }
+
+    // ပထမ cache ထဲကရှာ
+    const cached = resultCache[String(period)];
+
+    if (cached) {
+      return cached;
+    }
+
+    // မရှိရင် history ထဲကရှာ
+    const found = gameHistory.find(
+      h => String(h.period) === String(period)
+    );
+
+    if (found) {
+      return normalizeResult(found);
+    }
+
+    return null;
+  }
+
+  // ==========================================
+  // AUTO LOGIN
+  // ==========================================
+
+  window.addEventListener('load', () => {
+    const savedUser = localStorage.getItem('lottery_user');
+
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+
+        socket.emit('user_login', parsed);
+      } catch (e) {}
+    }
+  });
+
+  // ==========================================
+  // LOGIN / REGISTER
+  // ==========================================
+
+  function toggleAuthMode() {
+    isRegisterMode = !isRegisterMode;
+
+    document.getElementById('authTitle').innerText =
+      isRegisterMode
+        ? 'Lucky Lottery Register'
+        : 'Lucky Lottery Login';
+
+    document.getElementById('authSubmitBtn').innerText =
+      isRegisterMode
+        ? 'အကောင့်သစ်ဖွင့်မည်'
+        : 'လော့ဂ်အင်ဝင်မည်';
+  }
+
+  function handleAuth() {
+    const phone =
+      document.getElementById('loginUsername').value.trim();
+
+    const pass =
+      document.getElementById('loginPassword').value.trim();
+
+    if (!phone || !pass) {
+      return showToast('အချက်အလက် ဖြည့်ပါ', 'error');
+    }
+
+    socket.emit(
+      isRegisterMode ? 'user_register' : 'user_login',
+      {
+        phone,
+        pass
+      }
+    );
+  }
+
+  socket.on('auth_response', (res) => {
+
+    if (res.success) {
+
+      currentUser = res.user;
+
+      myBetHistory = res.myBets || [];
+
+      localStorage.setItem(
+        'lottery_user',
+        JSON.stringify({
+          phone: res.user.phone,
+          pass: res.user.pass
+        })
+      );
+
+      document.getElementById('userDisplay').innerText =
+        currentUser.phone;
+
+      document.getElementById('authOverlay').style.display =
+        'none';
+
+      updateBalanceUI();
+
+      renderMyHistory();
+
+      showToast(res.message, 'success');
+
+    } else {
+
+      localStorage.removeItem('lottery_user');
+
+      showToast(res.message, 'error');
+    }
+  });
+
+  // ==========================================
+  // INITIAL GAME DATA
+  // ==========================================
+
+  socket.on('init_data', (data) => {
+
+    gameHistory = (data.history || [])
+      .map(normalizeResult);
+
+    gameHistory.forEach(saveResult);
+
+    renderGameHistory();
+
+    document.getElementById('periodDisplay').innerText =
+      `P: ${data.period}`;
+  });
+
+  // ==========================================
+  // TIMER
+  // ==========================================
+
+  socket.on('timer_update', (data) => {
+
+    currentTimer = data.timer;
+
+    const secs =
+      currentTimer < 10
+        ? '0' + currentTimer
+        : currentTimer;
+
+    document.getElementById('timerDisplay').innerText =
+      `00:${secs}`;
+
+    document.getElementById('periodDisplay').innerText =
+      `P: ${data.period}`;
+
+    const statusBox =
+      document.getElementById('betStatusBox');
+
+    if (currentTimer <= 10) {
+
+      statusBox.className =
+        'bet-status-bar status-closed';
+
+      statusBox.innerText =
+        '🔴 လောင်းကြေး ခေတ္တပိတ်ထားပါသည် (10s ကန့်သတ်ချက်)';
+
+      closeModals();
+
+    } else {
+
+      statusBox.className =
+        'bet-status-bar status-open';
+
+      statusBox.innerText =
+        '🟢 လောင်းကြေး တင်နိုင်ပါသေးသည်';
+    }
+  });
+
+  // ==========================================
+  // BALANCE
+  // ==========================================
+
+  socket.on('balance_sync', (newBalance) => {
+
+    if (currentUser) {
+
+      currentUser.balance = newBalance;
+
+      updateBalanceUI();
+    }
+  });
+
+  // ==========================================
+  // BET RESPONSE
+  // ==========================================
+
+  socket.on('bet_response', (res) => {
+
+    showToast(
+      res.message,
+      res.success ? 'success' : 'error'
+    );
+
+    if (res.success) {
+
+      if (res.newBalance !== undefined) {
+        currentUser.balance = res.newBalance;
+      }
+
+      updateBalanceUI();
+
+      if (res.myCurrentBets) {
+
+        activeBetsList =
+          res.myCurrentBets;
+
+        renderCurrentBets(activeBetsList);
+      }
+    }
+  });
+
+  // ==========================================
+  // CURRENT BETS
+  // ==========================================
+
+  function renderCurrentBets(bets) {
+
+    const box =
+      document.getElementById('currentBetBox');
+
+    const list =
+      document.getElementById('currentBetList');
+
+    if (bets && bets.length > 0) {
+
+      box.style.display = 'block';
+
+      list.innerHTML =
+        bets.map(b => `
+          <span
+            style="
+              background:#0f172a;
+              padding:2px 8px;
+              border-radius:6px;
+              margin-right:5px;
+              font-weight:bold;
+            "
+          >
+            ${b.betType} -
+            K${Number(b.amount || 0).toLocaleString()}
+          </span>
+        `).join(' ');
+
+    } else {
+
+      box.style.display = 'none';
+
+      list.innerHTML = '';
+    }
+  }
+
+  // ==========================================
+  // GAME RESULT
+  // ==========================================
+
+  socket.on('game_result', (res) => {
+
+    const normalized =
+      saveResult(res);
+
+    if (!normalized) return;
+
+    // တူညီတဲ့ period ရှိရင် update
+    const existingIndex =
+      gameHistory.findIndex(
+        h =>
+          String(h.period) ===
+          String(normalized.period)
+      );
+
+    if (existingIndex !== -1) {
+
+      gameHistory[existingIndex] =
+        normalized;
+
+    } else {
+
+      gameHistory.unshift(normalized);
+    }
+
+    if (gameHistory.length > 50) {
+      gameHistory.pop();
+    }
+
+    renderGameHistory();
+
+    activeBetsList = [];
+
+    renderCurrentBets([]);
+  });
+
+  // ==========================================
+  // USER BET SETTLED
+  // ==========================================
+
+  socket.on('user_bet_settled', (res) => {
+
+    if (
+      !currentUser ||
+      (
+        res.phone &&
+        res.phone !== currentUser.phone
+      )
+    ) {
+      return;
+    }
+
+    currentUser.balance =
+      res.newBalance;
+
+    updateBalanceUI();
+
+    const period =
+      res.period || '-';
+
+    myBetHistory.unshift({
+      period: period,
+      betType: res.betType || '-',
+      amount: res.amount || 0,
+      win: res.win,
+      winAmount: res.winAmount || 0
+    });
+
+    renderMyHistory();
+
+    /*
+      အရင် code မှာ
+
+      const lastResult = gameHistory[0];
+
+      လုပ်ထားတာကြောင့် တစ်ခါတစ်လေ
+      နောက် period ရဲ့ number ကို Popup မှာပြတယ်။
+
+      အခုတော့ Bet ရဲ့ period နဲ့
+      Result ရဲ့ period ကို တိုက်ပြီးယူမယ်။
+    */
+
+    let exactResult =
+      getResultForPeriod(period);
+
+    // Server က settlement ထဲမှာ number ပါလာရင်
+    // အဲဒါကို အတိအကျအသုံးပြုမယ်
+    if (
+      res.number !== undefined &&
+      res.number !== null
+    ) {
+
+      exactResult =
+        normalizeResult({
+          ...(exactResult || {}),
+          period: period,
+          number: res.number,
+          color: res.color,
+          size: res.size
+        });
+
+      saveResult(exactResult);
+    }
+
+    showResultModal(
+      res,
+      exactResult
+    );
+  });
+
+  // ==========================================
+  // RESULT POPUP
+  // ==========================================
+
+  function showResultModal(
+    data,
+    exactResult
+  ) {
+
+    const overlay =
+      document.getElementById(
+        'resultModalOverlay'
+      );
+
+    const card =
+      document.getElementById(
+        'resCard'
+      );
+
+    const title =
+      document.getElementById(
+        'resTitle'
+      );
+
+    const badge =
+      document.getElementById(
+        'resBadge'
+      );
+
+    const bonusAmt =
+      document.getElementById(
+        'resBonusAmt'
+      );
+
+    // အဲဒီ period ရဲ့ result ကိုပဲသုံး
+    const result =
+      exactResult
+        ? normalizeResult(exactResult)
+        : null;
+
+    let number = '-';
+
+    if (
+      result &&
+      result.number !== undefined &&
+      result.number !== null
+    ) {
+      number = Number(result.number);
+    }
+
+    let color = 'violet';
+
+    if (number !== '-') {
+      color =
+        getColorFromNumber(number);
+    }
+
+    let size = '-';
+
+    if (number !== '-') {
+      size =
+        getSizeFromNumber(number);
+    }
+
+    // ==========================================
+    // COLOR NAME
+    // ==========================================
+
+    const colorNames = {
+      green: 'အစိမ်းရောင်',
+      red: 'အနီရောင်',
+      violet: 'ခရမ်းရောင်'
+    };
+
+    document.getElementById(
+      'resColorPill'
+    ).innerText =
+      colorNames[color] ||
+      'ခရမ်းရောင်';
+
+    // ==========================================
+    // COLOR PILL CLASS
+    // ==========================================
+
+    const colorPill =
+      document.getElementById(
+        'resColorPill'
+      );
+
+    colorPill.classList.remove(
+      'pill-green',
+      'pill-red',
+      'pill-violet'
+    );
+
+    if (color === 'green') {
+
+      colorPill.classList.add(
+        'pill-green'
+      );
+
+    } else if (color === 'red') {
+
+      colorPill.classList.add(
+        'pill-red'
+      );
+
+    } else {
+
+      colorPill.classList.add(
+        'pill-violet'
+      );
+    }
+
+    // ==========================================
+    // NUMBER
+    // ==========================================
+
+    document.getElementById(
+      'resNumPill'
+    ).innerText = number;
+
+    // ==========================================
+    // SIZE
+    // ==========================================
+
+    const sizeText =
+      size === 'BIG'
+        ? 'အကြီး'
+        : size === 'SMALL'
+          ? 'အသေး'
+          : '-';
+
+    const sizePill =
+      document.getElementById(
+        'resSizePill'
+      );
+
+    sizePill.innerText =
+      sizeText;
+
+    sizePill.classList.remove(
+      'pill-green',
+      'pill-red',
+      'pill-violet'
+    );
+
+    sizePill.classList.add(
+      size === 'BIG'
+        ? 'pill-green'
+        : 'pill-violet'
+    );
+
+    // ==========================================
+    // PERIOD
+    // ==========================================
+
+    document.getElementById(
+      'resPeriodText'
+    ).innerText =
+      periodText(period);
+
+    // ==========================================
+    // WIN / LOSS
+    // ==========================================
+
+    if (data.win) {
+
+      card.classList.remove('loss');
+
+      badge.innerText = '🚀';
+
+      title.innerText =
+        'သင်အနိုင်ရတဲ့အတွက် ဂုဏ်ယူပါတယ်။';
+
+      bonusAmt.innerText =
+        `K${Number(
+          data.winAmount || 0
+        ).toLocaleString(
+          'en-US',
+          {
+            minimumFractionDigits: 2
+          }
+        )}`;
+
+    } else {
+
+      card.classList.add('loss');
+
+      badge.innerText = '💔';
+
+      title.innerText =
+        'စိတ်မကောင်းပါဘူး အရှုံးရလဒ်ထွက်ပါသည်။';
+
+      bonusAmt.innerText =
+        'K0.00';
+    }
+
+    overlay.style.display =
+      'flex';
+
+    setTimeout(
+      closeResultModal,
+      4000
+    );
+  }
+
+  function periodText(period) {
+
+    if (
+      period &&
+      period !== '-'
+    ) {
+      return `Win 1Min - ${period}`;
+    }
+
+    return 'Win 1Min';
+  }
+
+  function closeResultModal() {
+
+    document.getElementById(
+      'resultModalOverlay'
+    ).style.display =
+      'none';
+  }
+
+  // ==========================================
+  // BALANCE UI
+  // ==========================================
+
+  function updateBalanceUI() {
+
+    if (currentUser) {
+
+      document.getElementById(
+        'balanceDisplay'
+      ).innerText =
+        `K${Number(
+          currentUser.balance || 0
+        ).toLocaleString(
+          'en-US',
+          {
+            minimumFractionDigits: 2
+          }
+        )}`;
+    }
+  }
+
+  // ==========================================
+  // GAME HISTORY
+  // ==========================================
+
+  function renderGameHistory() {
+
+    const tbody =
+      document.getElementById(
+        'gameHistoryBody'
+      );
+
+    tbody.innerHTML =
+      gameHistory.map(raw => {
+
+        const h =
+          normalizeResult(raw);
+
+        if (
+          !h ||
+          h.number === undefined ||
+          h.number === null
+        ) {
+          return '';
+        }
+
+        const number =
+          Number(h.number);
+
+        // IMPORTANT
+        // History color ကို number ကနေတွက်
+        const color =
+          getColorFromNumber(number);
+
+        // Big / Small ကိုလည်း number ကနေတွက်
+        const size =
+          getSizeFromNumber(number);
+
+        // ======================================
+        // COLOR
+        // ======================================
+
+        let bg = '#a855f7';
+
+        if (color === 'green') {
+          bg = '#10b981';
+        }
+
+        if (color === 'red') {
+          bg = '#ef4444';
+        }
+
+        // ======================================
+        // COLOR NAME
+        // ======================================
+
+        let colorName =
+          'Violet';
+
+        if (color === 'green') {
+          colorName = 'Green';
+        }
+
+        if (color === 'red') {
+          colorName = 'Red';
+        }
+
+        return `
+          <tr>
+
+            <td>
+              ${h.period ?? '-'}
+            </td>
+
+            <td>
+              <span
+                class="res-ball"
+                style="background:${bg}"
+              >
+                ${number}
+              </span>
+            </td>
+
+            <td
+              style="
+                font-weight:bold;
+                color:${
+                  size === 'BIG'
+                    ? '#f97316'
+                    : '#3b82f6'
+                }
+              "
+            >
+              ${size}
+            </td>
+
+            <td>
+              <span
+                style="
+                  color:${bg};
+                  font-weight:bold;
+                "
+              >
+                ● ${colorName}
+              </span>
+            </td>
+
+          </tr>
+        `;
+      }).join('');
+  }
+
+  // ==========================================
+  // MY HISTORY
+  // ==========================================
+
+  function renderMyHistory() {
+
+    const tbody =
+      document.getElementById(
+        'myHistoryBody'
+      );
+
+    tbody.innerHTML =
+      myBetHistory.map(b => {
+
+        const amount =
+          Number(b.amount || 0);
+
+        const winAmount =
+          Number(b.winAmount || 0);
+
+        const winText =
+          b.win
+
+            ? `
+              <span
+                style="
+                  color:#10b981;
+                  font-weight:bold;
+                "
+              >
+                +K${winAmount.toLocaleString()}
+              </span>
+            `
+
+            : `
+              <span
+                style="
+                  color:#ef4444;
+                  font-weight:bold;
+                "
+              >
+                -K${amount.toLocaleString()}
+              </span>
+            `;
+
+        return `
+          <tr>
+
+            <td>
+              ${b.period ?? '-'}
+            </td>
+
+            <td
+              style="
+                font-weight:bold;
+                color:#f1c40f;
+              "
+            >
+              ${b.betType ?? '-'}
+            </td>
+
+            <td>
+              K${amount.toLocaleString()}
+            </td>
+
+            <td>
+              ${winText}
+            </td>
+
+          </tr>
+        `;
+      }).join('');
+  }
+
+  // ==========================================
+  // HISTORY TAB
+  // ==========================================
+
+  function switchTab(tab) {
+
+    document.getElementById(
+      'tabGame'
+    ).classList.toggle(
+      'active',
+      tab === 'game'
+    );
+
+    document.getElementById(
+      'tabMy'
+    ).classList.toggle(
+      'active',
+      tab === 'my'
+    );
+
+    document.getElementById(
+      'gameHistoryView'
+    ).style.display =
+      tab === 'game'
+        ? 'block'
+        : 'none';
+
+    document.getElementById(
+      'myHistoryView'
+    ).style.display =
+      tab === 'my'
+        ? 'block'
+        : 'none';
+  }
+
+  // ==========================================
+  // OPEN BET
+  // ==========================================
+
+  function openBetModal(type, val) {
+
+    if (!currentUser) {
+      return showToast(
+        'လော့ဂ်အင် အရင်ဝင်ပါ',
+        'error'
+      );
+    }
+
+    if (currentTimer <= 10) {
+
+      return showToast(
+        '10 စက္ကန့်အောက် ရောက်နေသဖြင့် လောင်းကြေးတင်၍ မရပါ',
+        'error'
+      );
+    }
+
+    activeBet.type = type;
+
+    activeBet.value = val;
+
+    activeBet.customAmt = null;
+
+    document.getElementById(
+      'selectedItem'
+    ).innerText = val;
+
+    const customInput =
+      document.getElementById(
+        'customBetInput'
+      );
+
+    if (customInput) {
+      customInput.value = '';
+    }
+
+    updateBetTotal();
+
+    document.getElementById(
+      'betDrawer'
+    ).style.display =
+      'flex';
+  }
+
+  // ==========================================
+  // BASE AMOUNT
+  // ==========================================
+
+  function setBaseAmt(amt, el) {
+
+    activeBet.baseAmt = amt;
+
+    activeBet.customAmt = null;
+
+    document.getElementById(
+      'customBetInput'
+    ).value = '';
+
+    el.parentElement
+      .querySelectorAll('.chip')
+      .forEach(c =>
+        c.classList.remove('active')
+      );
+
     el.classList.add('active');
+
     updateBetTotal();
   }
+
+  // ==========================================
+  // MULTIPLIER
+  // ==========================================
 
   function setMultiplier(mult, el) {
+
     activeBet.qty = mult;
-    el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+
+    el.parentElement
+      .querySelectorAll('.chip')
+      .forEach(c =>
+        c.classList.remove('active')
+      );
+
     el.classList.add('active');
+
     updateBetTotal();
   }
+
+  // ==========================================
+  // CUSTOM AMOUNT
+  // ==========================================
 
   function onCustomInput(val) {
-    const amt = parseInt(val);
-    if (!isNaN(amt) && amt > 0) {
-      activeBet.customAmt = amt;
+
+    const amt =
+      parseInt(val);
+
+    if (
+      !isNaN(amt) &&
+      amt > 0
+    ) {
+
+      activeBet.customAmt =
+        amt;
+
     } else {
-      activeBet.customAmt = null;
+
+      activeBet.customAmt =
+        null;
     }
+
     updateBetTotal();
   }
 
+  // ==========================================
+  // BET TOTAL
+  // ==========================================
+
   function updateBetTotal() {
+
     let total = 0;
-    if (activeBet.customAmt !== null && activeBet.customAmt > 0) {
-      total = activeBet.customAmt * activeBet.qty;
+
+    if (
+      activeBet.customAmt !== null &&
+      activeBet.customAmt > 0
+    ) {
+
+      total =
+        activeBet.customAmt *
+        activeBet.qty;
+
     } else {
-      total = activeBet.baseAmt * activeBet.qty;
+
+      total =
+        activeBet.baseAmt *
+        activeBet.qty;
     }
-    document.getElementById('totalAmount').innerText = total.toLocaleString();
+
+    document.getElementById(
+      'totalAmount'
+    ).innerText =
+      total.toLocaleString();
   }
 
+  // ==========================================
+  // SUBMIT BET
+  // ==========================================
+
   function submitBet() {
-    if(currentTimer <= 10) {
-      showToast('10 စက္ကန့်အောက် ရောက်နေသဖြင့် လောင်းကြေး ပိတ်သွားပါပြီ', 'error');
+
+    if (currentTimer <= 10) {
+
+      showToast(
+        '10 စက္ကန့်အောက် ရောက်နေသဖြင့် လောင်းကြေး ပိတ်သွားပါပြီ',
+        'error'
+      );
+
       return closeModals();
     }
 
     let total = 0;
-    if (activeBet.customAmt !== null && activeBet.customAmt > 0) {
-      total = activeBet.customAmt * activeBet.qty;
+
+    if (
+      activeBet.customAmt !== null &&
+      activeBet.customAmt > 0
+    ) {
+
+      total =
+        activeBet.customAmt *
+        activeBet.qty;
+
     } else {
-      total = activeBet.baseAmt * activeBet.qty;
+
+      total =
+        activeBet.baseAmt *
+        activeBet.qty;
     }
 
-    if (isNaN(total) || total <= 0) {
-      return showToast('မှန်ကန်သော လောင်းကြေးပမာဏ ဖြည့်ပါ', 'error');
+    if (
+      isNaN(total) ||
+      total <= 0
+    ) {
+
+      return showToast(
+        'မှန်ကန်သော လောင်းကြေးပမာဏ ဖြည့်ပါ',
+        'error'
+      );
     }
 
-    if(currentUser.balance < total) return showToast('လက်ကျန်ငွေ မလုံလောက်ပါ', 'error');
+    if (
+      currentUser.balance <
+      total
+    ) {
 
-    socket.emit('place_bet', {
-      phone: currentUser.phone,
-      betType: activeBet.value,
-      amount: total
-    });
+      return showToast(
+        'လက်ကျန်ငွေ မလုံလောက်ပါ',
+        'error'
+      );
+    }
+
+    socket.emit(
+      'place_bet',
+      {
+        phone: currentUser.phone,
+        betType: activeBet.value,
+        amount: total
+      }
+    );
+
     closeModals();
   }
 
+  // ==========================================
+  // CLOSE MODALS
+  // ==========================================
+
   function closeModals() {
-    document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+
+    document
+      .querySelectorAll('.modal-overlay')
+      .forEach(m => {
+        m.style.display = 'none';
+      });
   }
 </script>
 </body>
