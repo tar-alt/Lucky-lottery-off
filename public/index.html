@@ -16,7 +16,28 @@
       --orange-3d: linear-gradient(180deg, #f97316 0%, #ea580c 100%);
       --blue-3d: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
     }
-    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
+
+    /* Text Selection & Touch Highlight Disable */
+    * { 
+      box-sizing: border-box; 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      margin: 0; 
+      padding: 0; 
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    input, textarea {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
+    }
+
     body { background: #020617; color: white; display: flex; justify-content: center; }
 
     .app { width: 100%; max-width: 480px; min-height: 100vh; background: var(--bg-main); padding: 12px; position: relative; padding-bottom: 75px; }
@@ -277,19 +298,7 @@
       </div>
     </div>
 
-    <!-- ================= PROFILE VIEW ================= -->
-    <div id="profileView" style="display: none;">
-      <!-- Profile Header -->
-      <div class="profile-header-card">
-        <div class="avatar-circle">👤</div>
-        <div class="user-phone" id="profilePhone">-</div>
-        <div class="user-id-badge">
-          <span>ID: <strong id="profilePlayerId">-</strong></span>
-          <button class="copy-btn" onclick="copyPlayerId()">Copy</button>
-        </div>
-      </div>
-
-      <!-- VIP Level Card -->
+    <!-- VIP Level Card -->
       <div class="vip-card">
         <div>
           <div style="font-size: 11px; color: #a5b4fc; text-transform: uppercase;">Member Level</div>
@@ -428,6 +437,11 @@
   </div>
 
 <script>
+  // Disable long-press context menu on mobile devices
+  document.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+  }, false);
+
   const socket = io();
   let isRegisterMode = false;
   let currentUser = null;
