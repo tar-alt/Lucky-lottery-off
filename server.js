@@ -8,7 +8,8 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'public')));
+;
 
 // Data Persistence (File Storage)
 const DATA_FILE = path.join(__dirname, 'game_data.json');
