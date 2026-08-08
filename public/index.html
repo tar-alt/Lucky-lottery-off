@@ -136,7 +136,7 @@
 
     /* Profile View Specific Styles */
     .profile-header-card { background: linear-gradient(135deg, #1e293b, #0f172a); border-radius: 20px; padding: 20px; border: 1px solid var(--card-border); text-align: center; margin-bottom: 16px; }
-    .avatar-circle { width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #d97706); display: flex; align-items: center; justify-content: justify-content; align-items: center; margin: 0 auto 10px; font-size: 32px; border: 3px solid #f1c40f; box-shadow: 0 4px 15px rgba(241, 196, 15, 0.3); }
+    .avatar-circle { width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #d97706); display: flex; justify-content: center; align-items: center; margin: 0 auto 10px; font-size: 32px; border: 3px solid #f1c40f; box-shadow: 0 4px 15px rgba(241, 196, 15, 0.3); }
     .user-phone { font-size: 18px; font-weight: bold; color: #fff; }
     .user-id-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.08); padding: 4px 12px; border-radius: 20px; font-size: 12px; color: #cbd5e1; margin-top: 6px; }
     .copy-btn { background: #334155; border: none; color: #f1c40f; padding: 2px 8px; border-radius: 10px; font-size: 10px; cursor: pointer; }
@@ -191,16 +191,17 @@
         </div>
       </div>
 
+      <!-- Mode Switcher Buttons with full switchGameMode event handlers -->
       <div class="modes">
-        <div class="mode-item active">Win Go 1Min</div>
-        <div class="mode-item">Win Go 3Min</div>
-        <div class="mode-item">Win Go 5Min</div>
-        <div class="mode-item">Win Go 10Min</div>
+        <div class="mode-item active" onclick="switchGameMode(this, '1Min')">Win Go 1Min</div>
+        <div class="mode-item" onclick="switchGameMode(this, '3Min')">Win Go 3Min</div>
+        <div class="mode-item" onclick="switchGameMode(this, '5Min')">Win Go 5Min</div>
+        <div class="mode-item" onclick="switchGameMode(this, '10Min')">Win Go 10Min</div>
       </div>
 
       <div class="ticket-card">
         <div>
-          <div style="font-size: 14px; font-weight: bold;">Win Go 1Min</div>
+          <div id="modeTitleDisplay" style="font-size: 14px; font-weight: bold;">Win Go 1Min</div>
           <small id="periodDisplay" style="color:#94a3b8;">P: Loading...</small>
         </div>
         <div>
@@ -367,7 +368,7 @@
     </div>
   </div>
 
-  <!-- Change Password Modal Placeholder -->
+  <!-- Change Password Modal -->
   <div id="changePassModalOverlay" class="modal-overlay" style="align-items: center;">
     <div class="redirect-modal-card">
       <h3 style="color:#f1c40f; margin-bottom: 12px;">စကားဝှက် ပြောင်းလဲရန်</h3>
@@ -381,7 +382,7 @@
   <!-- Game Bet Drawer Modal -->
   <div class="modal-overlay" id="betDrawer">
     <div class="modal-content">
-      <div class="modal-title">Win Go 1Min - Select <span id="selectedItem" style="color:#f97316;">Big</span></div>
+      <div class="modal-title"><span id="betDrawerModeTitle">Win Go 1Min</span> - Select <span id="selectedItem" style="color:#f97316;">Big</span></div>
       <div style="margin-bottom: 10px; font-size:13px;">Balance Base:</div>
       <div class="chips">
         <div class="chip" onclick="setBaseAmt(10, this)">10</div>
@@ -430,12 +431,24 @@
   const socket = io();
   let isRegisterMode = false;
   let currentUser = null;
+  let currentMode = '1Min';
   let activeBet = { type: '', value: '', baseAmt: 1000, qty: 1, customAmt: null };
   let gameHistory = [];
   let myBetHistory = [];
   let currentTimer = 60;
   let activeBetsList = [];
   const resultsMap = new Map();
+
+  // Mode Switcher Handler
+  function switchGameMode(element, mode) {
+    document.querySelectorAll('.mode-item').forEach(el => el.classList.remove('active'));
+    element.classList.add('active');
+    currentMode = mode;
+    document.getElementById('modeTitleDisplay').innerText = `Win Go ${mode}`;
+    document.getElementById('betDrawerModeTitle').innerText = `Win Go ${mode}`;
+    socket.emit('switch_mode', { mode: mode, phone: currentUser ? currentUser.phone : null });
+    showToast(`Win Go ${mode} သို့ ပြောင်းလဲလိုက်ပါပြီ`, 'info');
+  }
 
   // Navigation Function
   function switchNavTab(tab) {
@@ -595,8 +608,11 @@
 
   socket.on('timer_update', (data) => {
     currentTimer = data.timer;
-    const secs = currentTimer < 10 ? '0' + currentTimer : currentTimer;
-    document.getElementById('timerDisplay').innerText = `00:${secs}`;
+    const mins = Math.floor(currentTimer / 60);
+    const secs = currentTimer % 60;
+    const formattedMins = mins < 10 ? '0' + mins : mins;
+    const formattedSecs = secs < 10 ? '0' + secs : secs;
+    document.getElementById('timerDisplay').innerText = `${formattedMins}:${formattedSecs}`;
     document.getElementById('periodDisplay').innerText = `P: ${data.period}`;
 
     const statusBox = document.getElementById('betStatusBox');
@@ -696,6 +712,10 @@
     showResultModal(res, exactResult);
   });
 
+  socket.on('change_password_response', (res) => {
+    showToast(res.message, res.success ? 'success' : 'error');
+  });
+
   function showResultModal(data, exactResult) {
     const overlay = document.getElementById('resultModalOverlay');
     const card = document.getElementById('resCard');
@@ -742,7 +762,7 @@
   }
 
   function periodText(period) {
-    return (period && period !== '-') ? `Win 1Min - ${period}` : 'Win 1Min';
+    return (period && period !== '-') ? `Win ${currentMode} - ${period}` : `Win ${currentMode}`;
   }
 
   function closeResultModal() {
@@ -785,7 +805,13 @@
     const oldP = document.getElementById('oldPassInput').value;
     const newP = document.getElementById('newPassInput').value;
     if(!oldP || !newP) return showToast('အချက်အလက်များ ဖြည့်သွင်းပါ', 'error');
-    showToast('စကားဝှက် ပြောင်းလဲရန် Admin သို့ အကြောင်းကြားပါ', 'info');
+    if(!currentUser) return showToast('လော့ဂ်အင် အရင်ဝင်ပါ', 'error');
+
+    socket.emit('change_password', {
+      phone: currentUser.phone,
+      oldPass: oldP,
+      newPass: newP
+    });
     closeChangePassModal();
   }
 
@@ -900,6 +926,7 @@
 
     socket.emit('place_bet', {
       phone: currentUser.phone,
+      mode: currentMode,
       betType: activeBet.value,
       amount: total
     });
