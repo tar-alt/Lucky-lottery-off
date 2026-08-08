@@ -8,7 +8,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
 // Data Persistence (File Storage)
 const DATA_FILE = path.join(__dirname, 'game_data.json');
@@ -45,6 +45,22 @@ function saveData() {
   }
 }
 
+// Agent Stats ပြန်ထုတ်ပေးသည့် Function
+function sendAgentStats(agentPhone, socket) {
+  const agent = users[agentPhone];
+  if (!agent || agent.role !== 'agent') return;
+
+  const downlines = Object.values(users).filter(u => u.upline === agentPhone);
+  const downlinePhones = downlines.map(u => u.phone);
+  const downlineBets = betHistory.filter(b => downlinePhones.includes(b.phone));
+
+  socket.emit('agent_data', {
+    agentInfo: { phone: agent.phone, balance: agent.balance },
+    downlines: downlines,
+    downlineBets: downlineBets
+  });
+}
+
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
@@ -55,7 +71,7 @@ io.on('connection', (socket) => {
   });
 
   // =========================
-  // LOGIN
+  // USER / AGENT LOGIN
   // =========================
   socket.on('user_login', (data) => {
     const { phone, pass } = data || {};
@@ -85,7 +101,6 @@ io.on('connection', (socket) => {
 
     socket.join(phone);
 
-    // User ရဲ့ Personal Bet History ကို ပြန်ထုတ်ပေးခြင်း
     const myBets = betHistory.filter(b => b.phone === phone);
 
     socket.emit('auth_response', {
@@ -94,14 +109,15 @@ io.on('connection', (socket) => {
       user: {
         phone: user.phone,
         pass: user.pass,
-        balance: user.balance || 0
+        balance: user.balance || 0,
+        role: user.role || 'user'
       },
       myBets: myBets
     });
   });
 
   // =========================
-  // REGISTER
+  // USER REGISTER
   // =========================
   socket.on('user_register', (data) => {
     const { phone, pass } = data || {};
@@ -120,17 +136,107 @@ io.on('connection', (socket) => {
       });
     }
 
-    users[phone] = { phone: phone, pass: pass, balance: 0 };
+    users[phone] = { 
+      phone: phone, 
+      pass: pass, 
+      balance: 10000, 
+      role: 'user', 
+      upline: null 
+    };
     saveData();
     socket.join(phone);
 
     socket.emit('auth_response', {
       success: true,
       message: 'Register အောင်မြင်ပါတယ်',
-      user: { phone: phone, pass: pass, balance: 0 },
+      user: { phone: phone, pass: pass, balance: 10000, role: 'user' },
       myBets: []
     });
 
+    sendAdminStats();
+  });
+
+  // =========================
+  // AGENT SYSTEM CONTROLS
+  // =========================
+
+  // Agent Dashboard Refresh / Init
+  socket.on('agent_init', (agentPhone) => {
+    sendAgentStats(agentPhone, socket);
+  });
+
+  // Agent မှ Player အကောင့်သစ်ဖွင့်ပေးခြင်း
+  socket.on('agent_create_player', (data) => {
+    const { agentPhone, playerPhone, playerPass, initialBalance } = data || {};
+    const agent = users[agentPhone];
+
+    if (!agent || agent.role !== 'agent') {
+      return socket.emit('agent_toast', { success: false, message: 'Agent အကောင့် မဟုတ်ပါ။' });
+    }
+
+    if (users[playerPhone]) {
+      return socket.emit('agent_toast', { success: false, message: 'Player ဖုန်းနံပါတ် ရှိပြီးသားဖြစ်နေပါသည်။' });
+    }
+
+    const initAmt = parseFloat(initialBalance) || 0;
+    if (initAmt > 0 && agent.balance < initAmt) {
+      return socket.emit('agent_toast', { success: false, message: 'Agent လက်ကျန် Unit မလုံလောက်ပါ' });
+    }
+
+    if (initAmt > 0) agent.balance -= initAmt;
+
+    users[playerPhone] = {
+      phone: playerPhone,
+      pass: playerPass || '123456',
+      balance: initAmt,
+      role: 'user',
+      upline: agentPhone
+    };
+
+    saveData();
+    socket.emit('agent_toast', { success: true, message: `Player ${playerPhone} အကောင့်သစ် ဖန်တီးပြီးပါပြီ။` });
+    sendAgentStats(agentPhone, socket);
+    sendAdminStats();
+  });
+
+  // Agent မှ Player ထံ Unit ငွေသွင်း/ငွေထုတ် ပြုလုပ်ခြင်း
+  socket.on('agent_transfer_unit', (data) => {
+    const { agentPhone, playerPhone, type, amount } = data || {}; // type: 'deposit' or 'withdraw'
+    const agent = users[agentPhone];
+    const player = users[playerPhone];
+
+    if (!agent || agent.role !== 'agent') {
+      return socket.emit('agent_toast', { success: false, message: 'Agent လုပ်ပိုင်ခွင့် မရှိပါ။' });
+    }
+
+    if (!player || player.upline !== agentPhone) {
+      return socket.emit('agent_toast', { success: false, message: 'မိမိအောက်ရှိ Player မဟုတ်ပါ။' });
+    }
+
+    const transferAmt = parseFloat(amount);
+    if (isNaN(transferAmt) || transferAmt <= 0) {
+      return socket.emit('agent_toast', { success: false, message: 'ပမာဏ မှားယွင်းနေပါသည်။' });
+    }
+
+    if (type === 'deposit') {
+      if (agent.balance < transferAmt) {
+        return socket.emit('agent_toast', { success: false, message: 'Agent လက်ကျန်ငွေ မလုံလောက်ပါ။' });
+      }
+      agent.balance -= transferAmt;
+      player.balance += transferAmt;
+    } else if (type === 'withdraw') {
+      if (player.balance < transferAmt) {
+        return socket.emit('agent_toast', { success: false, message: 'Player လက်ကျန်ငွေ မလုံလောက်ပါ။' });
+      }
+      player.balance -= transferAmt;
+      agent.balance += transferAmt;
+    }
+
+    saveData();
+
+    io.to(playerPhone).emit('balance_sync', player.balance);
+    socket.emit('agent_toast', { success: true, message: `Unit ${type === 'deposit' ? 'သွင်း' : 'ထုတ်'}ယူမှု အောင်မြင်ပါသည်။` });
+    sendAgentStats(agentPhone, socket);
     sendAdminStats();
   });
 
@@ -163,7 +269,6 @@ io.on('connection', (socket) => {
       });
     }
 
-    // 10 စက္ကန့် ရောက်တာနဲ့ လောင်းကြေး အကုန်ပိတ်မည်
     if (gameSeconds <= 10) {
       return socket.emit('bet_response', {
         success: false,
@@ -198,6 +303,28 @@ io.on('connection', (socket) => {
   });
 
   // =========================
+  // CHANGE PASSWORD
+  // =========================
+  socket.on('change_password', (data) => {
+    const { phone, oldPass, newPass } = data || {};
+    const user = users[phone];
+
+    if (!user || user.pass !== oldPass) {
+      return socket.emit('change_password_response', {
+        success: false,
+        message: 'စကားဝှက်ဟောင်း မှားယွင်းနေပါသည်'
+      });
+    }
+
+    user.pass = newPass;
+    saveData();
+    socket.emit('change_password_response', {
+      success: true,
+      message: 'စကားဝှက် အောင်မြင်စွာ ပြောင်းလဲပြီးပါပြီ'
+    });
+  });
+
+  // =========================
   // ADMIN CONTROLS
   // =========================
   socket.on('admin_init', () => {
@@ -211,29 +338,56 @@ io.on('connection', (socket) => {
     sendAdminStats();
   });
 
-  // ADMIN SET TARGET RESULT (ဂဏန်း စိုက်ချရန်)
+  // Admin မှ Agent အကောင့်သစ် ဖန်တီးပေးခြင်း / Promote ပေးခြင်း
+  socket.on('admin_create_agent', (data) => {
+    const { phone, pass, balance } = data || {};
+    const agentBalance = parseFloat(balance) || 0;
+
+    if (!phone) return socket.emit('admin_toast', 'ဖုန်းနံပါတ် မမှန်ပါ');
+
+    if (users[phone]) {
+      users[phone].role = 'agent';
+      users[phone].balance += agentBalance;
+    } else {
+      users[phone] = {
+        phone: phone,
+        pass: pass || '123456',
+        balance: agentBalance,
+        role: 'agent',
+        upline: null
+      };
+    }
+
+    saveData();
+    sendAdminStats();
+    socket.emit('admin_toast', `Agent အကောင့် (${phone}) ပြုလုပ်ပြီးပါပြီ။`);
+  });
+
+  // Admin မှ Target Result သတ်မှတ်ခြင်း
   socket.on('admin_set_target_result', (data) => {
     manualTargetResult = data.target;
     io.emit('admin_toast', `နောက်ပွဲစဉ်အတွက် ဂဏန်း (${data.target}) ဟု သတ်မှတ်လိုက်ပါပြီ။`);
   });
 
+  // Admin မှ Unit ထည့်သွင်း/နှုတ်ယူခြင်း
   socket.on('admin_update_balance', (data) => {
     const { phone, amount } = data;
     const addAmt = parseFloat(amount);
     
     if (phone && !isNaN(addAmt)) {
       if (!users[phone]) {
-        users[phone] = { phone: phone, pass: '123456', balance: 0 };
+        users[phone] = { phone: phone, pass: '123456', balance: 0, role: 'user', upline: null };
       }
       users[phone].balance += addAmt;
       saveData();
       
       io.to(phone).emit('balance_sync', users[phone].balance);
       sendAdminStats();
-      socket.emit('admin_toast', `User ${phone} ထံသို့ Unit ${addAmt} ထည့်သွင်း/နှုတ်ယူပြီးပါပြီ။`);
+      socket.emit('admin_toast', `User/Agent ${phone} ထံသို့ Unit ${addAmt} ထည့်သွင်း/နှုတ်ယူပြီးပါပြီ။`);
     }
   });
 
+  // Admin မှ အကောင့်ဖျက်ခြင်း
   socket.on('admin_delete_user', (phone) => {
     if (phone && users[phone]) {
       delete users[phone];
@@ -310,7 +464,6 @@ function calculateGameResult() {
 
     possibleResults.sort((a, b) => a.payout - b.payout);
 
-    // 60% House Edge / Lowest Payout Algorithm
     let isHouseWinRate = Math.random() < 0.60;
     if (isHouseWinRate) {
       finalNumber = possibleResults[0].number;
@@ -321,14 +474,11 @@ function calculateGameResult() {
     finalNumber = Math.floor(Math.random() * 10);
   }
 
-  // ရလဒ် အရောင်နှင့် ဆိုဒ် သတ်မှတ်ခြင်း (ဒီနေရာတွင် အနီ/အစိမ်း/ခရမ်း သီးသန့် ခွဲထုတ်ပေးလိုက်ပါသည်)
-  let color = 'GREEN';
+  let color = 'green';
   if ([2, 4, 6, 8].includes(finalNumber)) {
-    color = 'RED';
-  } else if (finalNumber === 0) {
-    color = 'VIOLET_RED'; // 0 ဖြစ်လျှင် ခရမ်း+အနီ
-  } else if (finalNumber === 5) {
-    color = 'VIOLET_GREEN'; // 5 ဖြစ်လျှင် ခရမ်း+အစိမ်း
+    color = 'red';
+  } else if ([0, 5].includes(finalNumber)) {
+    color = 'violet';
   }
 
   let size = finalNumber >= 5 ? 'BIG' : 'SMALL';
@@ -350,10 +500,10 @@ function processPayouts(result) {
       winRatio = 2;
     } else if (bet.betType === 'GREEN') {
       if ([1, 3, 7, 9].includes(num)) winRatio = 2;
-      else if ([0, 5].includes(num)) winRatio = 1.5;
+      else if (num === 5) winRatio = 1.5;
     } else if (bet.betType === 'RED') {
       if ([2, 4, 6, 8].includes(num)) winRatio = 2;
-      else if ([0, 5].includes(num)) winRatio = 1.5;
+      else if (num === 0) winRatio = 1.5;
     } else if (bet.betType === 'VIOLET' && [0, 5].includes(num)) {
       winRatio = 4.5;
     }
@@ -380,7 +530,6 @@ function processPayouts(result) {
 
     betHistory.unshift(historyRecord);
 
-    // Pop-up ပြရန်နှင့် Balance Update အတွက် Data ပို့ခြင်း (အနိုင်/အရှုံး နှစ်ခုလုံး ပို့ပေးပါသည်)
     io.to(user.phone).emit('user_bet_settled', historyRecord);
     io.to(user.phone).emit('balance_sync', user.balance);
   });
@@ -409,7 +558,6 @@ setInterval(() => {
 
     saveData();
 
-    // Game Result Broadcast
     io.emit("game_result", historyItem);
 
     gamePeriod++;
@@ -429,3 +577,4 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Lucky Lottery server running on port ${PORT}`);
 });
+
