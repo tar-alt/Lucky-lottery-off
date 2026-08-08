@@ -8,8 +8,20 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// Public folder သို့မဟုတ် Root folder နှစ်ခုလုံးမှ Static Files များကို ဖတ်ခိုင်းခြင်း
 app.use(express.static(path.join(__dirname, 'public')));
-;
+app.use(express.static(__dirname));
+
+// Root Route (/) သို့ ဝင်လျှင် index.html ကို တိုက်ရိုက် ပြသရန်
+app.get('/', (req, res) => {
+  if (fs.existsSync(path.join(__dirname, 'public', 'index.html'))) {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  } else if (fs.existsSync(path.join(__dirname, 'index.html'))) {
+    res.sendFile(path.join(__dirname, 'index.html'));
+  } else {
+    res.send("index.html file not found in repository!");
+  }
+});
 
 // Data Persistence (File Storage)
 const DATA_FILE = path.join(__dirname, 'game_data.json');
@@ -160,13 +172,10 @@ io.on('connection', (socket) => {
   // =========================
   // AGENT SYSTEM CONTROLS
   // =========================
-
-  // Agent Dashboard Refresh / Init
   socket.on('agent_init', (agentPhone) => {
     sendAgentStats(agentPhone, socket);
   });
 
-  // Agent မှ Player အကောင့်သစ်ဖွင့်ပေးခြင်း
   socket.on('agent_create_player', (data) => {
     const { agentPhone, playerPhone, playerPass, initialBalance } = data || {};
     const agent = users[agentPhone];
@@ -200,9 +209,8 @@ io.on('connection', (socket) => {
     sendAdminStats();
   });
 
-  // Agent မှ Player ထံ Unit ငွေသွင်း/ငွေထုတ် ပြုလုပ်ခြင်း
   socket.on('agent_transfer_unit', (data) => {
-    const { agentPhone, playerPhone, type, amount } = data || {}; // type: 'deposit' or 'withdraw'
+    const { agentPhone, playerPhone, type, amount } = data || {};
     const agent = users[agentPhone];
     const player = users[playerPhone];
 
@@ -339,7 +347,6 @@ io.on('connection', (socket) => {
     sendAdminStats();
   });
 
-  // Admin မှ Agent အကောင့်သစ် ဖန်တီးပေးခြင်း / Promote ပေးခြင်း
   socket.on('admin_create_agent', (data) => {
     const { phone, pass, balance } = data || {};
     const agentBalance = parseFloat(balance) || 0;
@@ -364,13 +371,11 @@ io.on('connection', (socket) => {
     socket.emit('admin_toast', `Agent အကောင့် (${phone}) ပြုလုပ်ပြီးပါပြီ။`);
   });
 
-  // Admin မှ Target Result သတ်မှတ်ခြင်း
   socket.on('admin_set_target_result', (data) => {
     manualTargetResult = data.target;
     io.emit('admin_toast', `နောက်ပွဲစဉ်အတွက် ဂဏန်း (${data.target}) ဟု သတ်မှတ်လိုက်ပါပြီ။`);
   });
 
-  // Admin မှ Unit ထည့်သွင်း/နှုတ်ယူခြင်း
   socket.on('admin_update_balance', (data) => {
     const { phone, amount } = data;
     const addAmt = parseFloat(amount);
@@ -388,7 +393,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Admin မှ အကောင့်ဖျက်ခြင်း
   socket.on('admin_delete_user', (phone) => {
     if (phone && users[phone]) {
       delete users[phone];
